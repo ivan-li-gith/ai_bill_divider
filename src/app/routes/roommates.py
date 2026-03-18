@@ -12,8 +12,8 @@ def index():
     roommates_list = get_roommates(user_id)
     return render_template('roommates.html', roommates=roommates_list)
 
-@roommates.route('/add_roommate', methods=['POST'])
-def add_roommate():
+@roommates.route('/add', methods=['POST'])
+def add():
     user_id = session.get('user_id')
     name = request.form.get('name')
     if name:
@@ -21,8 +21,8 @@ def add_roommate():
         
     return redirect(url_for('roommates.index'))
 
-@roommates.route('/delete_roommate/<name>')
-def delete_roommate(name):
+@roommates.route('/delete/<name>')
+def delete(name):
     user_id = session.get('user_id')
     remove_roommate(user_id, name)
     return redirect(url_for('roommates.index'))
