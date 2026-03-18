@@ -11,8 +11,14 @@ Access the application here: [Split Em](https://split-em.com)
 * **AI Data Extraction**: Automatically parses complex PDF utility statements to extract service periods and balances using the OpenAI GPT-4o API
 * **Dynamic Roommate Management**: Add or remove roommates directly within the upload workflow to adjust splits
 * **Automated Rollover Tracking**: Automatically carries over unpaid balances to the next month's total for each individual
-* **Visual Analytics**: Interactive dashboards that provides insights into monthly spending trends and service breakdowns
+* **Visual Analytics**: Interactive dashboards that provide insights into monthly spending trends and service breakdowns
 * **Secure Authentication**: Integrated with Supabase Auth for secure email/password and Google OAuth 2.0 sign-in
+
+
+## 🚧 Project Status: Roadmap
+I am currently expanding **Split Em** from a utility-only tool to a general expense sharing platform:
+* **Receipt Line-Item OCR**: Moving beyond bill totals to parse individual items from restaurant receipts using GPT-4o
+* **Integrated "Nudges"**: Implementing deep-link shortcuts for Zelle and Venmo to allow one-tap payment requests
 
 
 ## 🛠️ Technical Stack
