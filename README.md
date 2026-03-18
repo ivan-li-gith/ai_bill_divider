@@ -4,7 +4,7 @@
 
 
 ## 🚀 Live Demo
-Access the application here: [AI Utility Bill Divider](https://split-em.com)
+Access the application here: [Split Em](https://split-em.com)
 
 
 ## ✨ Key Features
