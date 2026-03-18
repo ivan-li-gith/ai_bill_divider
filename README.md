@@ -57,7 +57,7 @@ Access the application here: [AI Utility Bill Divider](https://split-em.com)
     * `SUPABASE_URL` & `SUPABASE_KEY`: [Supabase](https://supabase.com/)
     * `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`: [AWS RDS Console](https://aws.amazon.com/)
     * `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`: [Google Cloud Console](https://cloud.google.com/)
-    * `APP_SECRET_KEY`: Generate a random string (e.g., `python -c 'import os; print(os.urandom(24).hex())'`)
+    * `APP_SECRET_KEY`: Generate a random string (`python -c 'import os; print(os.urandom(24).hex())'`)
 
 5.  **Run the application**:
     ```bash
