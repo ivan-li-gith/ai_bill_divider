@@ -7,6 +7,7 @@ from src.app.routes.bills import bills
 from src.app.routes.roommates import roommates
 from src.app.routes.history import history
 from src.app.routes.home import home
+from src.app.routes.setup import setup
 
 def create_app():
     load_dotenv()
@@ -18,6 +19,7 @@ def create_app():
     
     app.register_blueprint(home)
     app.register_blueprint(auth)
+    app.register_blueprint(setup)
     app.register_blueprint(bills)
     app.register_blueprint(roommates)
     app.register_blueprint(history)

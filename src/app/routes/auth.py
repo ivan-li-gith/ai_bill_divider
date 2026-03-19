@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from src.app.core.supabase_client import supabase
+from src.app.core.database import get_profile
 
 auth = Blueprint('auth', __name__)
 
@@ -21,8 +22,10 @@ def login():
             
             if response:
                 session["user_id"] = response.user.id
-                session["user_name"] = email
-                flash("Logged in successfully.", "success")
+                profile = get_profile(response.user.id)
+                
+                if not profile:
+                    return redirect(url_for("setup.index")) 
                 return redirect(url_for("home.index"))
         except Exception as e:
             flash(f"Login failed: {str(e)}", "danger")
@@ -69,7 +72,7 @@ def oauth_callback():
             session["user_name"] = response.user.email
             
             flash("Successfully authenticated with Google!", "success")
-            return redirect(url_for("home.index"))
+            return redirect(url_for("setup.index"))
         except Exception as e:
             flash(f"Authentication error: {e}", "danger")
             return redirect(url_for("auth.login"))
