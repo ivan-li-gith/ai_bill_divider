@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from src.app.core.database import init_db
 from src.app.routes.auth import auth
 from src.app.routes.bills import bills
-from src.app.routes.roommates import roommates
+from app.routes.groups import groups
 from src.app.routes.history import history
 from src.app.routes.home import home
 from src.app.routes.setup import setup
@@ -21,7 +21,7 @@ def create_app():
     app.register_blueprint(auth)
     app.register_blueprint(setup)
     app.register_blueprint(bills)
-    app.register_blueprint(roommates)
+    app.register_blueprint(groups)
     app.register_blueprint(history)
     return app
 

@@ -1,0 +1,21 @@
+{% extends "navbar_base.html" %}
+{% block content %}
+<div class="container">
+    <a href="{{ url_for('groups.index') }}">← Back to Groups</a>
+    <h2>Manage Members</h2>
+    
+    <form action="{{ url_for('groups.add_member', group_id=group_id) }}" method="POST" class="input-group mb-4">
+        <input type="email" name="email" placeholder="Roommate's Email" required>
+        <button type="submit" class="btn btn-pink">Invite Member</button>
+    </form>
+
+    <ul class="list-group">
+        {% for member in members %}
+        <li class="list-item">
+            <span>{{ member.display_name }} ({{ member.email }})</span>
+            <span class="badge">{{ member.role }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "navbar_base.html" %}
+{% block title %}Groups{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>My Groups</h2>
+    <form action="{{ url_for('groups.create') }}" method="POST" class="input-group mb-4">
+        <input type="text" name="group_name" placeholder="New Group Name (e.g. Spring Break)" required>
+        <button type="submit" class="btn btn-pink">Create Group</button>
+    </form>
+
+    <div class="grid-3">
+        {% for group in groups %}
+        <div class="card">
+            <div class="card-body">
+                <h3>{{ group.group_name }}</h3>
+                <a href="{{ url_for('groups.details', group_id=group.group_id) }}" class="btn btn-outline">Manage Members</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

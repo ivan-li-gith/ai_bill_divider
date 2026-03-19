@@ -185,19 +185,63 @@ def save_profile(user_id, name, age):
 def create_group(owner_id, group_name):
     engine = get_engine()
     with engine.begin() as conn:
-        # Create the group
+        # 1. Use 'group_list' instead of 'groups' to match init_db and avoid reserved keywords
         result = conn.execute(text("""
-            INSERT INTO groups (group_name, owner_id)
+            INSERT INTO group_list (group_name, owner_id)
             VALUES (:name, :oid)
         """), {"name": group_name, "oid": owner_id})
         
         # Get the ID of the group we just created
         group_id = result.lastrowid
         
-        # Automatically add the owner to the group as "Me"
+        # 2. Use 'user_id' instead of 'member_name'
+        # 3. Use 'owner_id' instead of 'Me' to link the actual user account
         conn.execute(text("""
-            INSERT INTO group_members (group_id, member_name)
-            VALUES (:gid, 'Me')
-        """), {"gid": group_id})
+            INSERT INTO group_members (group_id, user_id, role)
+            VALUES (:gid, :uid, 'owner')
+        """), {"gid": group_id, "uid": owner_id})
         
         return group_id
+    
+def get_user_groups(user_id):
+    """Fetches all groups the user is a member of."""
+    engine = get_engine()
+    query = text("""
+        SELECT gl.group_id, gl.group_name, gl.owner_id 
+        FROM group_list gl
+        JOIN group_members gm ON gl.group_id = gm.group_id
+        WHERE gm.user_id = :uid
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {"uid": user_id}).fetchall()
+        return [dict(row._asdict()) for row in result]
+
+def get_group_members(group_id):
+    """Fetches all profiles of users in a specific group."""
+    engine = get_engine()
+    query = text("""
+        SELECT p.user_id, p.display_name, p.email, gm.role
+        FROM profiles p
+        JOIN group_members gm ON p.user_id = gm.user_id
+        WHERE gm.group_id = :gid
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {"gid": group_id}).fetchall()
+        return [dict(row._asdict()) for row in result]
+
+def get_user_by_email(email):
+    """Finds a user's ID by their email."""
+    engine = get_engine()
+    query = text("SELECT user_id FROM profiles WHERE email = :email")
+    with engine.connect() as conn:
+        result = conn.execute(query, {"email": email}).fetchone()
+        return result[0] if result else None
+
+def add_group_member(group_id, user_id, role='member'):
+    """Adds a registered user to a group."""
+    engine = get_engine()
+    with engine.begin() as conn:
+        conn.execute(text("""
+            INSERT IGNORE INTO group_members (group_id, user_id, role)
+            VALUES (:gid, :uid, :role)
+        """), {"gid": group_id, "uid": user_id, "role": role})
