@@ -22,7 +22,6 @@ def init_db():
             CREATE TABLE IF NOT EXISTS profiles (
                 user_id VARCHAR(255) PRIMARY KEY,
                 display_name VARCHAR(255),
-                gender VARCHAR(255),
                 age INT,
                 email VARCHAR(255)
             )  
@@ -40,12 +39,13 @@ def init_db():
         
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS group_members (
+                group_member_id INT AUTO_INCREMENT PRIMARY KEY,
                 group_id INT,
-                user_id VARCHAR(255),
+                member_name VARCHAR(255),
+                member_email VARCHAR(255),
+                user_id VARCHAR(255) NULL,
                 role VARCHAR(50) DEFAULT 'member',
-                PRIMARY KEY (group_id, user_id),
-                FOREIGN KEY (group_id) REFERENCES group_list(group_id),
-                FOREIGN KEY (user_id) REFERENCES profiles(user_id)
+                FOREIGN KEY (group_id) REFERENCES group_list(group_id)
             )
         """))
         
@@ -185,36 +185,69 @@ def save_profile(user_id, name, age):
 def create_group(owner_id, group_name):
     engine = get_engine()
     with engine.begin() as conn:
-        # 1. Use 'group_list' instead of 'groups' to match init_db and avoid reserved keywords
+        # Create the group record
         result = conn.execute(text("""
             INSERT INTO group_list (group_name, owner_id)
             VALUES (:name, :oid)
         """), {"name": group_name, "oid": owner_id})
         
-        # Get the ID of the group we just created
         group_id = result.lastrowid
         
-        # 2. Use 'user_id' instead of 'member_name'
-        # 3. Use 'owner_id' instead of 'Me' to link the actual user account
+        # Fetch owner's profile info to add them as the first member
+        profile = conn.execute(text("SELECT display_name, email FROM profiles WHERE user_id = :uid"), 
+                               {"uid": owner_id}).fetchone()
+        
+        name = profile.display_name if profile else "Owner"
+        email = profile.email if profile else ""
+
+        # Add owner as a member
         conn.execute(text("""
-            INSERT INTO group_members (group_id, user_id, role)
-            VALUES (:gid, :uid, 'owner')
-        """), {"gid": group_id, "uid": owner_id})
+            INSERT INTO group_members (group_id, member_name, member_email, user_id, role)
+            VALUES (:gid, :name, :email, :uid, 'owner')
+        """), {"gid": group_id, "name": name, "email": email, "uid": owner_id})
         
         return group_id
     
+# src/app/core/database.py
+
 def get_user_groups(user_id):
-    """Fetches all groups the user is a member of."""
+    """Fetches groups and includes a JSON string of member details."""
     engine = get_engine()
+    # Use JSON_ARRAYAGG and JSON_OBJECT for structured member data
     query = text("""
-        SELECT gl.group_id, gl.group_name, gl.owner_id 
+        SELECT gl.group_id, gl.group_name, gl.owner_id,
+               JSON_ARRAYAGG(
+                   JSON_OBJECT(
+                       'id', gm.group_member_id,
+                       'name', gm.member_name,
+                       'email', gm.member_email,
+                       'role', gm.role
+                   )
+               ) as members_json
         FROM group_list gl
         JOIN group_members gm ON gl.group_id = gm.group_id
-        WHERE gm.user_id = :uid
+        WHERE gl.owner_id = :uid OR gm.user_id = :uid
+        GROUP BY gl.group_id
     """)
     with engine.connect() as conn:
         result = conn.execute(query, {"uid": user_id}).fetchall()
         return [dict(row._asdict()) for row in result]
+
+def delete_group(group_id, user_id):
+    """Deletes group if the user is the owner."""
+    engine = get_engine()
+    with engine.begin() as conn:
+        # First remove members (FK constraint)
+        conn.execute(text("DELETE FROM group_members WHERE group_id = :gid"), {"gid": group_id})
+        # Then remove the group
+        conn.execute(text("DELETE FROM group_list WHERE group_id = :gid AND owner_id = :uid"), 
+                     {"gid": group_id, "uid": user_id})
+
+def update_group_name(group_id, new_name):
+    engine = get_engine()
+    with engine.begin() as conn:
+        conn.execute(text("UPDATE group_list SET group_name = :name WHERE group_id = :gid"), 
+                     {"name": new_name, "gid": group_id})
 
 def get_group_members(group_id):
     """Fetches all profiles of users in a specific group."""
@@ -237,11 +270,17 @@ def get_user_by_email(email):
         result = conn.execute(query, {"email": email}).fetchone()
         return result[0] if result else None
 
-def add_group_member(group_id, user_id, role='member'):
-    """Adds a registered user to a group."""
+def add_group_member(group_id, name, email):
     engine = get_engine()
     with engine.begin() as conn:
         conn.execute(text("""
-            INSERT IGNORE INTO group_members (group_id, user_id, role)
-            VALUES (:gid, :uid, :role)
-        """), {"gid": group_id, "uid": user_id, "role": role})
+            INSERT INTO group_members (group_id, member_name, member_email)
+            VALUES (:gid, :name, :email)
+        """), {"gid": group_id, "name": name, "email": email})
+        
+def delete_member(member_id):
+    """Deletes a specific member from a group."""
+    engine = get_engine()
+    with engine.begin() as conn:
+        conn.execute(text("DELETE FROM group_members WHERE group_member_id = :mid AND role != 'owner'"), 
+                     {"mid": member_id})

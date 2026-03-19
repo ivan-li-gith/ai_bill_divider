@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from src.app.core.database import init_db
 from src.app.routes.auth import auth
 from src.app.routes.bills import bills
-from app.routes.groups import groups
+from src.app.routes.groups import groups
 from src.app.routes.history import history
 from src.app.routes.home import home
 from src.app.routes.setup import setup

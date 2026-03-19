@@ -12,12 +12,29 @@ def group_page():
     return render_template('groups.html', groups=user_groups)
 
 @groups.route('/groups/create', methods=['POST'])
-def create_group():
+def create():
+    if "user_id" not in session:
+        return redirect(url_for("auth.login"))
+    
+    user_id = session["user_id"]
     group_name = request.form.get('group_name')
+    names = request.form.getlist('member_names[]')
+    emails = request.form.getlist('member_emails[]')
+    
     if group_name:
-        create_group(session["user_id"], group_name)
-        flash(f"Group '{group_name}' created!", "success")
-    return redirect(url_for('groups.index'))
+        try:
+            group_id = create_group(user_id, group_name)
+            
+            # Add each member using their name and email
+            for name, email in zip(names, emails):
+                if name.strip() and email.strip():
+                    add_group_member(group_id, name.strip(), email.strip())
+            
+            flash(f"Group '{group_name}' created successfully!", "success")
+        except Exception as e:
+            flash(f"Error creating group: {e}", "danger")
+            
+    return redirect(url_for('groups.group_page'))
 
 @groups.route('/groups/<int:group_id>')
 def details(group_id):
@@ -39,3 +56,47 @@ def add_member(group_id):
         
     return redirect(url_for('groups.details', group_id=group_id))
 
+@groups.route('/groups/delete/<int:group_id>', methods=['POST'])
+def delete(group_id):
+    if "user_id" in session:
+        delete_group(group_id, session["user_id"])
+        flash("Group deleted.", "info")
+    return redirect(url_for('groups.group_page'))
+
+@groups.route('/groups/edit/<int:group_id>', methods=['POST'])
+def edit(group_id):
+    if "user_id" not in session:
+        return redirect(url_for("auth.login"))
+
+    new_name = request.form.get('group_name')
+    names = request.form.getlist('member_names[]')
+    emails = request.form.getlist('member_emails[]')
+    
+    if new_name:
+        try:
+            # 1. Update the group name
+            update_group_name(group_id, new_name)
+            
+            # 2. Add any new members provided in the modal
+            for name, email in zip(names, emails):
+                if name.strip() and email.strip():
+                    add_group_member(group_id, name.strip(), email.strip())
+            
+            flash(f"Group '{new_name}' updated successfully!", "success")
+        except Exception as e:
+            flash(f"Error updating group: {e}", "danger")
+            
+    return redirect(url_for('groups.group_page'))
+
+# src/app/routes/groups.py
+
+@groups.route('/groups/members/delete/<int:member_id>', methods=['POST'])
+def remove_member(member_id):
+    if "user_id" not in session:
+        return "Unauthorized", 401
+    
+    try:
+        delete_member(member_id)
+        return "Success", 200
+    except Exception as e:
+        return str(e), 500
