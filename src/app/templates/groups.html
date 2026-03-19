@@ -12,7 +12,7 @@
             <div class="menu-container">
                 <button class="menu-btn">⋮</button>
                 <div class="menu-content">
-                    <a href="#" class="menu-item" onclick="openModal('edit', '{{ group.group_id }}', '{{ group.group_name }}')">Edit</a>
+                    <a href="#" class="menu-item" onclick="openModal('edit', '{{ group.group_id }}', '{{ group.group_name }}', {{ group.members | tojson | forceescape }})">Edit</a>
                     <form action="{{ url_for('groups.delete', group_id=group.group_id) }}" method="POST" onsubmit="return confirm('Delete group?')">
                         <button type="submit" class="menu-item" style="border:none; width:100%; text-align:left; background:none;">Delete</button>
                     </form>
@@ -20,10 +20,16 @@
             </div>
             <div class="card-body">
                 <h3>{{ group.group_name }}</h3>
-                <p style="color: #666; margin-bottom: 0.5rem;">
-                    <strong>Members:</strong> {{ group.member_list if group.member_list else 'No members' }}
-                </p>
-                <a href="{{ url_for('groups.details', group_id=group.group_id) }}" class="btn btn-outline" style="width: auto;">View Details</a>
+                <p style="color: #666; margin-bottom: 0.5rem;"><strong>Group Members:</strong></p>
+                <ul style="list-style-type: none; padding-left: 0; margin-top: 0;">
+                    {% for member in group.members %}
+                        <li style="margin-bottom: 0.25rem;">
+                            {{ member.name }} {% if member.email %}&lt;{{ member.email }}&gt;{% endif %}
+                        </li>
+                    {% else %}
+                        <li>No members</li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
         {% endfor %}
@@ -48,46 +54,81 @@
                 <div id="member-list-container"></div>
             </div>
             
-            <button type="submit" class="btn btn-pink" id="submitBtn">Create Group</button>
+            <button type="submit" class="btn btn-pink" id="submitBtn" style="margin-top: 1rem;">Save Group</button>
         </form>
     </div>
 </div>
 
-
 <script>
+function closeModal() {
+    document.getElementById('groupModal').style.display = 'none';
+}
+
+window.onclick = function(event) {
+    const modal = document.getElementById('groupModal');
+    if (event.target == modal) {
+        closeModal();
+    }
+}
+
+function addMemberRow() {
+    const container = document.getElementById('member-list-container');
+    const row = document.createElement('div');
+    row.className = 'input-group mb-2 d-flex';
+    row.innerHTML = `
+        <input type="text" name="new_names[]" placeholder="Name" required style="flex: 1;">
+        <input type="email" name="new_emails[]" placeholder="Email (Optional)" style="flex: 2;">
+        <button type="button" class="btn btn-outline" style="color: #dc3545;" onclick="this.parentElement.remove()">×</button>
+    `;
+    container.appendChild(row);
+}
+
 function openModal(mode, id, name, members = []) {
     const modal = document.getElementById('groupModal');
     const title = document.getElementById('modalTitle');
     const form = document.getElementById('groupForm');
     const nameInput = document.getElementById('modalGroupName');
     const container = document.getElementById('member-list-container');
+    const submitBtn = document.getElementById('submitBtn');
     
-    container.innerHTML = ''; // Clear previous rows
+    container.innerHTML = ''; 
 
     if (mode === 'edit') {
         title.innerText = "Edit Group";
+        submitBtn.innerText = "Save Changes";
         form.action = `/groups/edit/${id}`;
         nameInput.value = name;
 
-        // Populate existing members
         members.forEach(m => {
             const row = document.createElement('div');
-            row.className = 'input-group mb-2';
-            row.style.opacity = m.role === 'owner' ? '0.6' : '1';
+            row.className = 'input-group mb-2 d-flex';
             
-            row.innerHTML = `
-                <input type="text" value="${m.name}" disabled style="flex: 1; background: #f0f0f0;">
-                <input type="email" value="${m.email}" disabled style="flex: 2; background: #f0f0f0;">
-                ${m.role !== 'owner' ? 
-                    `<button type="button" class="btn btn-outline" style="color: #dc3545;" onclick="removeExistingMember(${m.id}, this)">×</button>` : 
-                    `<span style="padding: 0.5rem;">👑</span>`}
-            `;
+            if (m.role === 'owner') {
+                // Owner is disabled and cannot be edited
+                row.style.opacity = '0.6';
+                row.innerHTML = `
+                    <input type="text" value="${m.name}" disabled style="flex: 1; background: #f0f0f0;">
+                    <input type="email" value="${m.email || ''}" disabled style="flex: 2; background: #f0f0f0;">
+                    <span style="padding: 0.5rem;" title="Owner">👑</span>
+                `;
+            } else {
+                // Existing members are assigned to 'existing_names[]' arrays and allowed to be edited
+                row.innerHTML = `
+                    <input type="hidden" name="existing_ids[]" value="${m.id}">
+                    <input type="text" name="existing_names[]" value="${m.name}" required style="flex: 1;">
+                    <input type="email" name="existing_emails[]" value="${m.email || ''}" style="flex: 2;">
+                    <button type="button" class="btn btn-outline" style="color: #dc3545;" onclick="removeExistingMember(${m.id}, this)">×</button>
+                `;
+            }
             container.appendChild(row);
         });
     } else {
         title.innerText = "Create New Group";
+        submitBtn.innerText = "Create Group";
         form.action = "{{ url_for('groups.create') }}";
         nameInput.value = "";
+        
+        addMemberRow();
     }
     modal.style.display = 'flex';
 }

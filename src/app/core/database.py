@@ -284,3 +284,13 @@ def delete_member(member_id):
     with engine.begin() as conn:
         conn.execute(text("DELETE FROM group_members WHERE group_member_id = :mid AND role != 'owner'"), 
                      {"mid": member_id})
+        
+def update_member(member_id, name, email):
+    """Updates an existing member's name and email."""
+    engine = get_engine()
+    with engine.begin() as conn:
+        conn.execute(text("""
+            UPDATE group_members 
+            SET member_name = :name, member_email = :email 
+            WHERE group_member_id = :mid AND role != 'owner'
+        """), {"name": name, "email": email, "mid": member_id})
