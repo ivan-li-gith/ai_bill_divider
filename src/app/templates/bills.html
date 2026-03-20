@@ -8,12 +8,33 @@
             Upload Utility Bills
         </div>
         <div class="card-body">
-            <p class="text-center" style="color: #666; font-size: 0.9rem;">Select PDF statements to parse with AI.</p>
+            <p class="text-center" style="color: #666; font-size: 0.9rem;">Select a group and PDF statements to parse with AI.</p>
+            
             <form action="{{ url_for('bills.upload_bills') }}" method="POST" enctype="multipart/form-data">
-                <div class="form-group">
-                    <input type="file" name="bills" multiple accept=".pdf" required>
+                
+                <div class="form-group mb-4">
+                    <label>Select Group to Split With</label>
+                    <select name="group_id" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+                        <option value="" disabled selected>-- Choose a group --</option>
+                        {% for group in groups %}
+                            <option value="{{ group.group_id }}">{{ group.group_name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <button type="submit" class="btn btn-pink" style="background-color: #198754;">Process Bills</button>
+
+                <div class="form-group mb-4">
+                    <label>Upload Statements</label>
+                    <input type="file" name="bills" multiple accept=".pdf" required style="width: 100%; padding: 8px; border: 1px dashed #ccc; border-radius: 4px; background: #f9f9f9;">
+                </div>
+                
+                {% if groups|length > 0 %}
+                    <button type="submit" class="btn btn-pink" style="background-color: #198754; width: 100%;">Process Bills</button>
+                {% else %}
+                    <div class="alert alert-danger mb-0 text-center">
+                        You need to create a group before you can upload bills! <br>
+                        <a href="{{ url_for('groups.group_page') }}" style="color: #842029; font-weight: bold;">Go to Groups</a>
+                    </div>
+                {% endif %}
             </form>
         </div>
     </div>
@@ -47,7 +68,7 @@
                     </tbody>
                 </table>
                 <input type="hidden" name="bill_count" value="{{ session.staged_bills|length }}">
-                <button type="submit" class="btn btn-pink">Confirm & Save to Database</button>
+                <button type="submit" class="btn btn-pink" style="width: 100%;">Confirm & Save to Database</button>
             </form>
         </div>
     </div>

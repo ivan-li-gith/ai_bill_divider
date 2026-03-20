@@ -9,6 +9,15 @@
           onsubmit="return confirm('Permanently delete all data?');">
         <button type="submit" class="btn btn-outline" style="color: #dc3545; border-color: #dc3545;">Clear All Data</button>
     </form>
+    <form action="{{ url_for('history.index') }}" method="GET" id="groupFilterForm">
+            <select name="group_id" onchange="this.form.submit()" style="padding: 8px; border-radius: 4px;">
+                {% for group in groups %}
+                <option value="{{ group.group_id }}" {% if group.group_id == selected_group_id %}selected{% endif %}>
+                    {{ group.group_name }}
+                </option>
+                {% endfor %}
+            </select>
+    </form>
     {% endif %}
 </div>
 

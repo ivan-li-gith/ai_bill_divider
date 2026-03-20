@@ -1,6 +1,6 @@
 import pandas as pd
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
-from src.app.core.database import get_roommates, save_bill_history
+from src.app.core.database import *
 from src.app.core.parser import extract_from_pdf, get_bill_details
 
 bills = Blueprint('bills', __name__)
@@ -11,11 +11,12 @@ def index():
         return redirect(url_for('auth.login'))
     
     user_id = session["user_id"]
-    roommates = get_roommates(user_id)
-    return render_template('bills.html', roommates=roommates)
+    groups = get_user_groups(user_id)
+    return render_template('bills.html', groups=groups)
 
 @bills.route('/upload_bills', methods=['POST'])
 def upload_bills():
+    group_id = request.form.get("group_id")
     files = request.files.getlist('bills')
     all_bill_data = []
     
@@ -29,6 +30,7 @@ def upload_bills():
                 flash(f"Failed to process {file.filename}: {e}", "danger")
 
     session['staged_bills'] = all_bill_data
+    session['staged_group_id'] = group_id
     return redirect(url_for('bills.index'))
 
 @bills.route('/confirm_bills', methods=['POST'])
@@ -37,6 +39,7 @@ def confirm_bills():
         return redirect(url_for('auth.login'))
     
     user_id = session['user_id']
+    group_id = session.get('staged_group_id')
     bill_count = int(request.form.get('bill_count', 0))
     corrected_data = []
 
@@ -52,7 +55,8 @@ def confirm_bills():
             "Billing Month": request.form.get(f"month_{i}"),
             "Service Name": request.form.get(f"service_{i}"),
             "Service Period": request.form.get(f"period_{i}"),
-            "Total Amount Due": float(request.form.get(f"amount_{i}", 0))
+            "Total Amount Due": float(request.form.get(f"amount_{i}", 0)),
+            "groud_id": group_id
         }
         corrected_data.append(bill)
 
@@ -60,6 +64,7 @@ def confirm_bills():
         df = pd.DataFrame(corrected_data)
         save_bill_history(user_id, df)
         session.pop('staged_bills', None)   # clear session once saved
+        session.pop('staged_group_id', None)
         flash("Bills successfully saved to database!", "success")
         return redirect(url_for('history.index'))
     

@@ -1,6 +1,6 @@
 import pandas as pd
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
-from src.app.core.database import get_paid_status, load_history, get_roommates, save_tracker, clear_db
+from src.app.core.database import *
 
 history = Blueprint('history', __name__)
 
@@ -10,27 +10,35 @@ def index():
         return redirect(url_for('login'))
     
     user_id = session['user_id']
+    user_groups = get_user_groups
+    group_id = request.args.get('group_id', type=int)
+    
+    if not group_id and user_groups:
+        group_id = user_groups[0]['group_id']
+    
     billing_history = load_history(user_id)
     
-    if not billing_history.empty:
-        names = get_roommates(user_id)
+    if not billing_history.empty and group_id:
+        names = get_group_members(group_id)
         month_displays = calculate_monthly_data(user_id, billing_history, names)
         month_displays.reverse() 
     else:
         month_displays = []
 
-    return render_template('history.html', month_displays=month_displays)
+    return render_template('history.html', month_displays=month_displays, groups=user_groups, selected_group=group_id)
 
 @history.route('/update_payment', methods=['POST'])
 def update_payment():
     user_id = session['user_id']
     month = request.form.get('month')
-    names = get_roommates(user_id)
-    full_member_list = ["Me"] + names
+    group_id = request.form.get('group_id', type=int)
+    
+    names = get_group_members(group_id)
+    # Re-calculate names list to include owner for the split
+    full_member_list = ["Me"] + [n for n in names if n != "Me"]
     
     updated_rows = []
     for name in full_member_list:
-        # check if checkbox was clicked
         is_paid = request.form.get(f"paid_{month}_{name}") == 'on'
         updated_rows.append({
             "Roommate Name": name,
@@ -41,10 +49,10 @@ def update_payment():
         })
     
     df = pd.DataFrame(updated_rows)
-    save_tracker(user_id, df, month)
+    save_tracker(user_id, df, month, group_id)
     
     flash(f"Updated payments for {month}", "success")
-    return redirect(url_for('history.history_page'))
+    return redirect(url_for('history.index', group_id=group_id))
 
 @history.route('/clear_history', methods=['POST'])
 def clear_history():
@@ -61,15 +69,13 @@ def clear_history():
         
     return redirect(url_for('history.history_page'))
 
-def calculate_monthly_data(user_id, billing_history, names):
+def calculate_monthly_data(user_id, billing_history, names, group_id):
+    # (Existing sorting logic remains the same)
     unique_months = billing_history["Billing Month"].unique()
-        
-    months_ascending = sorted(
-        unique_months,
-        key=lambda date_str: pd.to_datetime(date_str, format='%B %Y'),
-    )
+    months_ascending = sorted(unique_months, key=lambda d: pd.to_datetime(d, format='%B %Y'))
     
-    full_member_list = ["Me"] + names
+    # Filter 'Me' out if already in names, then add to the start
+    full_member_list = ["Me"] + [n for n in names if n != "Me"]
     running_rollover = {name: 0.0 for name in full_member_list}
     month_displays = []
     
@@ -78,7 +84,9 @@ def calculate_monthly_data(user_id, billing_history, names):
         monthly_total = month_df["Total Amount Due"].sum()
         num_ppl = len(full_member_list)
         monthly_split = round(monthly_total / num_ppl, 2) if num_ppl > 0 else 0
-        paid_dict = get_paid_status(user_id, month)
+        
+        # Now uses group-aware paid status
+        paid_dict = get_paid_status(user_id, month, group_id)
         
         roommates = pd.DataFrame({
             "Roommate Name": full_member_list,
@@ -88,22 +96,16 @@ def calculate_monthly_data(user_id, billing_history, names):
         })
         
         roommates["Total Owed"] = (roommates["Current Month Split"] + roommates["Rollover Amount"]).round(2)
-        roommates = roommates[["Roommate Name", "Current Month Split", "Rollover Amount", "Total Owed", "Paid"]]
         
         for idx, row in roommates.iterrows():
-            name = row["Roommate Name"]
-            if not row["Paid"]:
-                # if they did not pay carry the balance into the next month
-                running_rollover[name] = row["Total Owed"]
-            else:
-                running_rollover[name] = 0.0
+            running_rollover[row["Roommate Name"]] = 0.0 if row["Paid"] else row["Total Owed"]
         
         month_displays.append({
             "month": month,
             "df": month_df,
             "roommates": roommates,
             "monthly_total": monthly_total,
-            "monthly_split": monthly_split
+            "monthly_split": monthly_split,
+            "group_id": group_id
         })
-    
     return month_displays

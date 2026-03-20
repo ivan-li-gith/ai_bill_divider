@@ -1,5 +1,5 @@
-from flask import Blueprint, render_template, session, redirect, url_for
-from src.app.core.database import load_history, get_roommates
+from flask import Blueprint, render_template, session, redirect, url_for, request
+from src.app.core.database import *
 from src.app.routes.history import calculate_monthly_data
 import plotly.express as px
 import plotly.io as pio
@@ -13,6 +13,12 @@ def index():
         return redirect(url_for("auth.login"))
     
     user_id = session["user_id"]
+    user_groups = get_user_groups(user_id)
+    group_id = request.args.get('group_id', type=int) or session.get('active_group_id')
+    
+    if not group_id and user_groups:
+        group_id = user_groups[0]['group_id']
+        
     billing_history = load_history(user_id)
     
     stats = {
@@ -25,9 +31,9 @@ def index():
     donut_html = ""
     line_html = ""  
     
-    if not billing_history.empty:
-        names = get_roommates(user_id)
-        month_displays = calculate_monthly_data(user_id, billing_history, names)
+    if not billing_history.empty and group_id:
+        names = get_group_members(group_id)
+        month_displays = calculate_monthly_data(user_id, billing_history, names, group_id)
         
         if month_displays:
             current_month = month_displays[-1]
@@ -35,7 +41,7 @@ def index():
             donut_html = donut_chart(current_month)
             line_html = line_chart(billing_history, month_displays)
             
-    return render_template('home.html', stats=stats, donut_html=donut_html, line_html=line_html)      
+    return render_template('home.html', stats=stats, donut_html=donut_html, line_html=line_html, groups=user_groups, selected_group=group_id)      
     
 def summary_cards(current_month, stats):
     stats.update({
