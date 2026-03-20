@@ -27,7 +27,7 @@
         <button type="button" class="btn-text" onclick="toggleUpload()" style="color: #666; font-size: 1.2rem;">&times;</button>
     </div>
     <div class="card-body">
-        <form action="{{ url_for('utilities.upload') }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ url_for('utilities.upload') }}" method="POST" enctype="multipart/form-data" onsubmit="handleAIParsing(event)">
             
             <div class="form-group mb-3">
                 <label>Which group are these bills for?</label>
@@ -56,7 +56,7 @@
         <span class="badge" style="background: #eb4f7a; color: white;">{{ session.staged_bills|length }} Staged</span>
     </div>
     <div class="card-body">
-        <form action="{{ url_for('utilities.save') }}" method="POST">
+        <form action="{{ url_for('utilities.save') }}" method="POST" onsubmit="handleSaveHistory(event)">
             <table>
                 <thead>
                     <tr>
@@ -260,5 +260,59 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+function handleAIParsing(event) {
+    event.preventDefault(); // Stop the page from refreshing
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    // Show a global loading state or a spinner on the button
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerText;
+    submitBtn.innerText = "Parsing with AI...";
+    submitBtn.disabled = true;
+
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Option: Reload just the staging area or inject the HTML returned from server
+            location.reload(); // Quickest way to show the new staging session
+        }
+    })
+    .catch(error => console.error('Error during AI parsing:', error))
+    .finally(() => {
+        submitBtn.innerText = originalText;
+        submitBtn.disabled = false;
+    });
+}
+
+function handleSaveHistory(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    const stagingCard = form.closest('.card');            
+    stagingCard.style.opacity = '0.5'; 
+    stagingCard.style.pointerEvents = 'none';
+
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Hide the staging card smoothly
+            // Trigger a UI update of the history section
+            // or simply reload to see the final calculated totals
+            location.reload(); 
+        }
+    });
+}
 </script>
 {% endblock %}

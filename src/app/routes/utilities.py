@@ -46,6 +46,9 @@ def upload():
 
     session['staged_bills'] = all_bill_data
     session['staged_group_id'] = group_id
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({"status": "success"})
     return redirect(url_for('utilities.index', group_id=group_id))
 
 @utilities.route('/utilities/save', methods=['POST'])
@@ -75,6 +78,9 @@ def save():
         session.pop('staged_bills', None) 
         session.pop('staged_group_id', None)
         flash("Bills successfully saved to database!", "success")
+        
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({"status": "success"})
     
     return redirect(url_for('utilities.index', group_id=group_id))
 
