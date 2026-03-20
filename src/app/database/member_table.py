@@ -27,13 +27,13 @@ def update_member(member_id, name, email):
         """), {"name": name, "email": email, "mid": member_id})
         
 def get_group_members(group_id):
-    """Fetches all profiles of users in a specific group."""
+    """Fetches all members in a group directly from the members table."""
     engine = get_engine()
+    # Remove the JOIN with profiles so unregistered members are included
     query = text("""
-        SELECT p.user_id, p.display_name, p.email, gm.role
-        FROM profiles p
-        JOIN group_members gm ON p.user_id = gm.user_id
-        WHERE gm.group_id = :gid
+        SELECT member_name, member_email, user_id, role
+        FROM group_members
+        WHERE group_id = :gid
     """)
     with engine.connect() as conn:
         result = conn.execute(query, {"gid": group_id}).fetchall()

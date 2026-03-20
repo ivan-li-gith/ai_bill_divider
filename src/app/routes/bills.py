@@ -63,9 +63,10 @@ def confirm_bills():
     if corrected_data:
         df = pd.DataFrame(corrected_data)
         save_bill_history(user_id, df)
+        group_id = session.get('staged_group_id')
         session.pop('staged_bills', None)   # clear session once saved
         session.pop('staged_group_id', None)
         flash("Bills successfully saved to database!", "success")
-        return redirect(url_for('history.history_page'))
+        return redirect(url_for('history.history_page', group_id=group_id))
     
     return redirect(url_for('bills.bills_page'))

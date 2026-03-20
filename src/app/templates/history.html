@@ -1,28 +1,31 @@
 {% extends "navbar_base.html" %}
-{% block title %}History{% endblock %}
-
 {% block content %}
-<div class="page-header d-flex justify-between align-center mb-4">
-    <h2 style="margin: 0;">Billing History</h2>
-    {% if month_displays %}
-    <form action="{{ url_for('history.clear_history') }}" method="POST" 
-          onsubmit="return confirm('Permanently delete all data?');">
-        <button type="submit" class="btn btn-outline" style="color: #dc3545; border-color: #dc3545;">Clear All Data</button>
-    </form>
-    <form action="{{ url_for('history.history_page') }}" method="GET" id="groupFilterForm">
-            <select name="group_id" onchange="this.form.submit()" style="padding: 8px; border-radius: 4px;">
+<div class="page-header mb-4">
+    <div class="d-flex justify-between align-center">
+        <h2>Billing History</h2>
+        
+        <form action="{{ url_for('history.history_page') }}" method="GET" id="groupFilterForm">
+            <select name="group_id" onchange="this.form.submit()" style="padding: 8px; border-radius: 4px; min-width: 200px;">
+                <option value="" {% if not selected_group_id %}selected{% endif %}>-- Select a Group --</option>
                 {% for group in groups %}
                 <option value="{{ group.group_id }}" {% if group.group_id == selected_group_id %}selected{% endif %}>
                     {{ group.group_name }}
                 </option>
                 {% endfor %}
             </select>
-    </form>
-    {% endif %}
+        </form>
+    </div>
 </div>
 
-{% if not month_displays %}
-    <div class="alert alert-info">No history found. Go to Upload Bills to start.</div>
+{% if not selected_group_id %}
+    <div class="alert alert-info text-center">
+        Please select a group above to view your expense history. <br>
+        <small>Don't see any groups? <a href="{{ url_for('groups.group_page') }}">Create one here.</a></small>
+    </div>
+{% elif not month_displays %}
+    <div class="alert alert-warning text-center">
+        No bills found for this group. <a href="{{ url_for('bills.bills_page') }}">Upload bills</a> to see the split!
+    </div>
 {% else %}
     {% for display in month_displays %}
     <div class="card mb-4">

@@ -64,3 +64,15 @@ def init_db():
                 `Total Owed` DECIMAL(10, 2),
                 `Paid` BOOLEAN
         )"""))
+        
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS recurring_expenses (
+                recurring_id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id VARCHAR(255),
+                group_id INT,
+                expense_name VARCHAR(255),
+                amount DECIMAL(10, 2),
+                billing_day INT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (group_id) REFERENCES group_list(group_id)
+        )"""))

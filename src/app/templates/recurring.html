@@ -1,0 +1,94 @@
+{% extends "navbar_base.html" %}
+{% block title %}Subscriptions{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-between align-center mb-4">
+    <h2>Recurring Expenses</h2>
+    <div class="d-flex align-center" style="gap: 1rem;">
+        <form action="{{ url_for('recurring.recurring_page') }}" method="GET">
+            <select name="group_id" onchange="this.form.submit()" style="padding: 8px; border-radius: 4px;">
+                {% for group in groups %}
+                <option value="{{ group.group_id }}" {% if group.group_id == selected_group_id %}selected{% endif %}>
+                    {{ group.group_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+        <button class="btn btn-pink" style="width: auto;" onclick="openModal('add')">+ Add Subscription</button>
+    </div>
+</div>
+
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <div class="card-header">Managed Subscriptions</div>
+    <div class="card-body">
+        <div class="vertical-stack">
+            {% for exp in expenses %}
+            <div class="card mb-2" style="position: relative; border: 1px solid #eee;">
+                <div class="menu-container">
+                    <button class="menu-btn">⋮</button>
+                    <div class="menu-content">
+                        <a href="#" class="menu-item" onclick="openModal('edit', '{{ exp.recurring_id }}', '{{ exp.expense_name }}', '{{ exp.amount }}', '{{ exp.billing_day }}')">Edit</a>
+                        <form action="{{ url_for('recurring.delete', recurring_id=exp.recurring_id) }}" method="POST">
+                            <input type="hidden" name="group_id" value="{{ selected_group_id }}">
+                            <button type="submit" class="menu-item" style="border:none; width:100%; text-align:left; background:none; color:#dc3545;">Delete</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 1rem;">
+                    <strong>{{ exp.expense_name }}</strong><br>
+                    <small style="color: #666;">${{ "%.2f"|format(exp.amount) }} • Due day: {{ exp.billing_day }}</small>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-center" style="color: #999;">No recurring expenses yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div id="recurringModal" class="modal-overlay" style="display: none;">
+    <div class="auth-card" style="max-width: 400px; position: relative;">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <h3 id="modalTitle">Add Subscription</h3>
+        <form id="recurringForm" method="POST">
+            <input type="hidden" name="group_id" value="{{ selected_group_id }}">
+            <div class="form-group">
+                <label>Subscription Name</label>
+                <input type="text" name="expense_name" id="modalName" placeholder="e.g. Netflix, Wifi" required>
+            </div>
+            <div class="form-group">
+                <label>Monthly Amount ($)</label>
+                <input type="number" step="0.01" name="amount" id="modalAmount" required>
+            </div>
+            <div class="form-group">
+                <label>Billing Day (1-31)</label>
+                <input type="number" name="billing_day" id="modalDay" min="1" max="31" required>
+            </div>
+            <button type="submit" class="btn btn-pink" id="submitBtn">Save Subscription</button>
+        </form>
+    </div>
+</div>
+
+<script>
+function closeModal() { document.getElementById('recurringModal').style.display = 'none'; }
+
+function openModal(mode, id, name, amount, day) {
+    const modal = document.getElementById('recurringModal');
+    const form = document.getElementById('recurringForm');
+    const title = document.getElementById('modalTitle');
+    
+    if (mode === 'edit') {
+        title.innerText = "Edit Subscription";
+        form.action = `/recurring/edit/${id}`;
+        document.getElementById('modalName').value = name;
+        document.getElementById('modalAmount').value = amount;
+        document.getElementById('modalDay').value = day;
+    } else {
+        title.innerText = "Add Subscription";
+        form.action = "{{ url_for('recurring.add') }}";
+        form.reset();
+    }
+    modal.style.display = 'flex';
+}
+</script>
+{% endblock %}

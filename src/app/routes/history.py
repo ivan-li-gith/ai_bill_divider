@@ -7,25 +7,30 @@ history = Blueprint('history', __name__)
 @history.route('/history')
 def history_page():
     if "user_id" not in session:
-        return redirect(url_for('auth.login')) # Fixed blueprint prefix
+        return redirect(url_for('auth.login_page'))
     
     user_id = session['user_id']
     user_groups = get_user_groups(user_id)
+    
+    # Get group_id from URL, but DO NOT default it to the first group automatically
     group_id = request.args.get('group_id', type=int)
     
-    if not group_id and user_groups:
-        group_id = user_groups[0]['group_id']
-    
-    billing_history = load_history(user_id)
-    
-    if not billing_history.empty and group_id:
-        names = get_group_members(group_id)
-        month_displays = calculate_monthly_data(user_id, billing_history, names, group_id)
-        month_displays.reverse() 
-    else:
-        month_displays = []
+    month_displays = []
+    if group_id:
+        # Pass group_id to SQL to ensure we only get that group's bills
+        billing_history = load_history(user_id, group_id)
+        
+        if not billing_history.empty:
+            names = get_group_members(group_id)
+            # Ensure group_id is passed to the calculator
+            month_displays = calculate_monthly_data(user_id, billing_history, names, group_id)
+            month_displays.reverse() 
 
-    return render_template('history.html', month_displays=month_displays, groups=user_groups, selected_group=group_id)
+    # Use 'selected_group_id' to match the template's expectations
+    return render_template('history.html', 
+                           month_displays=month_displays, 
+                           groups=user_groups, 
+                           selected_group_id=group_id)
 
 @history.route('/update_payment', methods=['POST'])
 def update_payment():
@@ -77,10 +82,11 @@ def calculate_monthly_data(user_id, billing_history, names, group_id):
     
     full_member_list = []
     for m in names:
-        if str(m["user_id"]) == str(user_id):
+        # Check if the member's user_id matches the logged-in user
+        if m.get("user_id") == user_id:
             full_member_list.append("Me")
         else:
-            full_member_list.append(m["display_name"])
+            full_member_list.append(m["member_name"])
     
 
     running_rollover = {name: 0.0 for name in full_member_list}
