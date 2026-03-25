@@ -1,6 +1,6 @@
 import json
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
-from src.app.database import get_user_groups, create_group, add_group_member, get_group_members, get_user_by_email, delete_group, update_group_name, update_member, delete_member
+from src.app.database import get_user_groups, create_group, add_group_member, get_group_members, get_user_by_email, delete_group, update_group_name, update_member, delete_member, update_and_sync_member
 
 groups = Blueprint('groups', __name__)
 
@@ -42,34 +42,55 @@ def create():
 
 @groups.route('/groups/edit/<int:group_id>', methods=['POST'])
 def edit(group_id):
-    if "user_id" not in session:
-        return redirect(url_for("auth.login"))
-
+    if "user_id" not in session: return redirect(url_for("auth.login"))
     user_id = session["user_id"]
-    new_name = request.form.get('group_name')
-    existing_ids = request.form.getlist('existing_ids[]')
-    existing_names = request.form.getlist('existing_names[]')
-    existing_emails = request.form.getlist('existing_emails[]')
-    existing_phones = request.form.getlist('existing_phones[]') # NEW
-    new_names = request.form.getlist('new_names[]')
-    new_emails = request.form.getlist('new_emails[]')
-    new_phones = request.form.getlist('new_phones[]') # NEW
+    group_type = request.form.get('group_type', 'group')
     
-    if new_name:
-        try:
-            update_group_name(group_id, new_name)
-            for m_id, name, email, phone in zip(existing_ids, existing_names, existing_emails, existing_phones): # UPDATED
-                clean_name = name.strip()
-                clean_email = email.strip()
-                clean_phone = phone.strip()
-                if clean_name:
-                    update_member(m_id, clean_name, clean_email, clean_phone) # UPDATED
-
-            process_members(user_id, group_id, new_names, new_emails, new_phones, auto_create_individual=True) # UPDATED
-            flash(f"Group '{new_name}' updated successfully!", "success")
-        except Exception as e:
-            flash(f"Error updating group: {e}", "danger")
+    try:
+        # SCENARIO A: Editing an Individual Card
+        if group_type == 'individual':
+            new_names = request.form.getlist('new_names[]')
+            new_emails = request.form.getlist('new_emails[]')
+            new_phones = request.form.getlist('new_phones[]')
             
+            if new_names:
+                clean_name = new_names[0].strip()
+                clean_email = new_emails[0].strip() if new_emails else ""
+                clean_phone = new_phones[0].strip() if new_phones else ""
+                
+                if clean_name:
+                    members = get_group_members(group_id)
+                    target = next((m for m in members if m['role'] != 'owner'), None)
+                    if target:
+                        update_and_sync_member(target['group_member_id'], user_id, clean_name, clean_email, clean_phone)
+                        
+        # SCENARIO B: Editing a Full Group
+        else:
+            new_name = request.form.get('group_name')
+            if new_name:
+                update_group_name(group_id, new_name)
+                
+                existing_ids = request.form.getlist('existing_ids[]')
+                existing_names = request.form.getlist('existing_names[]')
+                existing_emails = request.form.getlist('existing_emails[]')
+                existing_phones = request.form.getlist('existing_phones[]')
+                
+                for m_id, name, email, phone in zip(existing_ids, existing_names, existing_emails, existing_phones):
+                    clean_name = name.strip()
+                    clean_email = email.strip()
+                    clean_phone = phone.strip()
+                    if clean_name:
+                        update_and_sync_member(m_id, user_id, clean_name, clean_email, clean_phone)
+                        
+                new_names = request.form.getlist('new_names[]')
+                new_emails = request.form.getlist('new_emails[]')
+                new_phones = request.form.getlist('new_phones[]')
+                process_members(user_id, group_id, new_names, new_emails, new_phones, auto_create_individual=True)
+                
+        flash("Updated successfully!", "success")
+    except Exception as e:
+        flash(f"Error updating: {e}", "danger")
+        
     return redirect(url_for('groups.index'))
 
 @groups.route('/groups/delete/<int:group_id>', methods=['POST'])

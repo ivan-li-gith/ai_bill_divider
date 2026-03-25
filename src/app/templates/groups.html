@@ -62,6 +62,14 @@
                     <h3 style="margin: 0 0 0.25rem 0;">{{ group.group_name }}</h3>
                     {% for member in group.members if member.role != 'owner' %}
                         <p style="color: #666; font-size: 0.9rem; margin: 0;">Email: {{ member.email if member.email else 'None' }}</p>
+                        <p style="color: #666; font-size: 0.9rem; margin: 0;">
+                            Phone: 
+                            {% if member.phone %}
+                                {{ member.phone }}
+                            {% else %}
+                                <span style="font-style: italic; color: #aaa; font-size: 0.85rem;">Click edit to add number</span>
+                            {% endif %}
+                        </p>
                     {% endfor %}
                 </div>
 
@@ -135,6 +143,18 @@
 </div>
 
 <script>
+const existingIndividuals = [
+    {% for group in groups if group.group_type == 'individual' %}
+        {% for member in group.members if member.role != 'owner' %}
+        {
+            name: "{{ member.name | replace('\"', '\\\"') }}",
+            email: "{{ member.email if member.email else '' }}",
+            phone: "{{ member.phone if member.phone else '' }}"
+        },
+        {% endfor %}
+    {% endfor %}
+];
+    
 function closeModal() {
     document.getElementById('groupModal').style.display = 'none';
 }
@@ -149,20 +169,62 @@ window.onclick = function(event) {
 function addMemberRow() {
     const container = document.getElementById('group-member-list-container');
     const row = document.createElement('div');
-    row.style.cssText = 'border: 1px solid #ddd; border-radius: 8px; position: relative; padding: 1rem; background: #fafafa; margin-bottom: 0.5rem;';
+    
+    // NEW UI: Clean white card, subtle shadow, better padding
+    row.style.cssText = 'border: 1px solid #e0e0e0; border-radius: 8px; position: relative; padding: 1.25rem; background: #fff; margin-bottom: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.02);';
+    
+    let optionsHtml = '<option value="">+ Create New / Manual Entry</option>';
+    existingIndividuals.forEach((ind, index) => {
+        optionsHtml += `<option value="${index}">${ind.name}</option>`;
+    });
+
+    const uniqueId = Date.now() + Math.random().toString(36).substr(2, 9);
+
     row.innerHTML = `
-        <button type="button" style="position: absolute; top: 10px; right: 10px; color: #dc3545; font-size: 1.5rem; cursor: pointer; border: none; background: none; line-height: 1;" onclick="this.parentElement.remove()">&times;</button>
-        <div class="form-group mb-2" style="padding-right: 20px;">
-            <input type="text" name="new_names[]" placeholder="Name" required style="width: 100%;">
+        <button type="button" style="position: absolute; top: 12px; right: 12px; color: #aaa; font-size: 1.2rem; cursor: pointer; border: none; background: none; transition: color 0.2s;" onmouseover="this.style.color='#dc3545'" onmouseout="this.style.color='#aaa'" onclick="this.parentElement.remove()">✖</button>
+        
+        ${existingIndividuals.length > 0 ? `
+        <div class="form-group mb-3" style="padding-right: 20px;">
+            <label style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: #888; margin-bottom: 6px;">Select Individual</label>
+            <select class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; background: #f8f9fa; font-weight: 500;" onchange="populateMemberData(this, '${uniqueId}')">
+                ${optionsHtml}
+            </select>
         </div>
-        <div class="form-group mb-2">
-            <input type="email" name="new_emails[]" placeholder="Email (Optional)" style="width: 100%;">
-        </div>
-        <div class="form-group mb-0">
-            <input type="tel" name="new_phones[]" placeholder="Phone (Optional)" style="width: 100%;">
+        ` : ''}
+
+        <div style="${existingIndividuals.length > 0 ? 'border-top: 1px dashed #eee; padding-top: 1rem;' : ''}">
+            <div class="form-group mb-2" style="padding-right: ${existingIndividuals.length > 0 ? '0' : '20px'};">
+                <input type="text" id="name_${uniqueId}" name="new_names[]" placeholder="Full Name (Required)" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+            </div>
+            
+            <div class="grid-2" style="gap: 0.75rem;">
+                <div class="form-group mb-0">
+                    <input type="email" id="email_${uniqueId}" name="new_emails[]" placeholder="Email (Optional)" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                </div>
+                <div class="form-group mb-0">
+                    <input type="tel" id="phone_${uniqueId}" name="new_phones[]" placeholder="Phone (Optional)" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                </div>
+            </div>
         </div>
     `;
     container.appendChild(row);
+}
+
+function populateMemberData(selectElement, uniqueId) {
+    const nameInput = document.getElementById(`name_${uniqueId}`);
+    const emailInput = document.getElementById(`email_${uniqueId}`);
+    const phoneInput = document.getElementById(`phone_${uniqueId}`);
+
+    if (selectElement.value !== "") {
+        const ind = existingIndividuals[selectElement.value];
+        nameInput.value = ind.name;
+        emailInput.value = ind.email;
+        phoneInput.value = ind.phone;
+    } else {
+        nameInput.value = "";
+        emailInput.value = "";
+        phoneInput.value = "";
+    }
 }
 
 function openModal(mode, type, id, name, members = []) {
@@ -206,6 +268,11 @@ function openModal(mode, type, id, name, members = []) {
             personNameInput.value = name;
             const individual = members.find(m => m.role !== 'owner');
             personEmailInput.value = individual ? (individual.email || '') : '';
+
+            const personPhoneInput = document.getElementById('modalPersonPhone');
+            if (personPhoneInput) {
+                personPhoneInput.value = individual ? (individual.phone || '') : '';
+            }
         } else {
             groupNameInput.value = name;
             members.forEach(m => {
@@ -213,18 +280,25 @@ function openModal(mode, type, id, name, members = []) {
                 if (m.role === 'owner') return;
 
                 const row = document.createElement('div');
-                row.style.cssText = 'border: 1px solid #ddd; border-radius: 8px; position: relative; padding: 1rem; background: #fafafa; margin-bottom: 0.5rem;';
+                
+                // NEW UI: Match the clean white card styling
+                row.style.cssText = 'border: 1px solid #e0e0e0; border-radius: 8px; position: relative; padding: 1.25rem; background: #fff; margin-bottom: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.02);';
+                
                 row.innerHTML = `
-                    <button type="button" style="position: absolute; top: 10px; right: 10px; color: #dc3545; font-size: 1.5rem; cursor: pointer; border: none; background: none; line-height: 1;" onclick="removeExistingMember(${m.id}, this)">&times;</button>
+                    <button type="button" style="position: absolute; top: 12px; right: 12px; color: #aaa; font-size: 1.2rem; cursor: pointer; border: none; background: none; transition: color 0.2s;" onmouseover="this.style.color='#dc3545'" onmouseout="this.style.color='#aaa'" onclick="removeExistingMember(${m.id}, this)">✖</button>
                     <input type="hidden" name="existing_ids[]" value="${m.id}">
+                    
                     <div class="form-group mb-2" style="padding-right: 20px;">
-                        <input type="text" name="existing_names[]" value="${m.name}" required style="width: 100%;">
+                        <input type="text" name="existing_names[]" value="${m.name}" placeholder="Full Name (Required)" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
                     </div>
-                    <div class="form-group mb-2">
-                        <input type="email" name="existing_emails[]" value="${m.email || ''}" placeholder="Email (Optional)" style="width: 100%;">
-                    </div>
-                    <div class="form-group mb-0">
-                        <input type="tel" name="existing_phones[]" value="${m.phone || ''}" placeholder="Phone (Optional)" style="width: 100%;">
+                    
+                    <div class="grid-2" style="gap: 0.75rem;">
+                        <div class="form-group mb-0">
+                            <input type="email" name="existing_emails[]" value="${m.email || ''}" placeholder="Email (Optional)" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        </div>
+                        <div class="form-group mb-0">
+                            <input type="tel" name="existing_phones[]" value="${m.phone || ''}" placeholder="Phone (Optional)" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        </div>
                     </div>
                 `;
                 groupContainer.appendChild(row);

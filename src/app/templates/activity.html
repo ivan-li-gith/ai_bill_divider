@@ -67,6 +67,57 @@
         </form>
     </div>
 </div>
+
+{% endif %} {% if session.staged_receipt_items %}
+<div id="receiptStagingModal" class="modal-overlay" style="display: flex; z-index: 2000;">
+    <div class="auth-card" style="max-width: 650px; position: relative; max-height: 90vh; overflow-y: auto;">
+        <span class="close-btn" onclick="document.getElementById('receiptStagingModal').style.display='none'">&times;</span>
+        
+        <h3 style="margin-top: 0; text-align: center;">Review Scanned Receipt</h3>
+        <div class="text-center mb-4">
+            <span class="badge" style="background: #eb4f7a; color: white;">{{ session.staged_receipt_items|length }} Items Found</span>
+        </div>
+        
+        <form action="{{ url_for('expenses.save_staged') }}" method="POST">
+            
+            <div class="form-group mb-3">
+                <label>Date of Purchase</label>
+                <input type="date" name="expense_date" id="receiptDate" required style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; margin-bottom: 1rem; text-align: left;">
+                    <thead>
+                        <tr style="background-color: #f8f9fa;">
+                            <th style="padding: 8px;">Item Name</th>
+                            <th style="padding: 8px; width: 30%;">Amount ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="receiptItemsBody">
+                        {% for item in session.staged_receipt_items %}
+                        <tr>
+                            <td style="padding: 4px;">
+                                <input type="text" name="name_{{ loop.index0 }}" value="{{ item['Service Name'] }}" required style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                            </td>
+                            <td style="padding: 4px;">
+                                <input type="number" step="0.01" name="amount_{{ loop.index0 }}" value="{{ item['Total Amount Due'] }}" required style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <button type="button" class="btn btn-outline mb-3" style="width: 100%; border-style: dashed; padding: 10px;" onclick="addReceiptItemRow()">
+                + Add Missing Item
+            </button>
+            
+            <p style="font-size: 0.85rem; color: #666; text-align: center;">*Set amount to 0 if you want to skip an item.</p>
+            <input type="hidden" name="item_count" id="receiptItemCount" value="{{ session.staged_receipt_items|length }}">
+            <button type="submit" class="btn btn-pink" style="width: 100%;">Confirm & Save Items</button>
+        </form>
+    </div>
+</div>
 {% endif %}
 
 <div class="card mb-4" style="border: 1px solid #ddd; overflow: hidden;">
@@ -246,6 +297,32 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('receiptDate');
+    if(dateInput) { dateInput.valueAsDate = new Date(); }
+});
+
+function addReceiptItemRow() {
+        const tbody = document.getElementById('receiptItemsBody');
+        const countInput = document.getElementById('receiptItemCount');
+        let currentIndex = parseInt(countInput.value);
+        
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="padding: 4px;">
+                <input type="text" name="name_${currentIndex}" placeholder="Manually added item..." required style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </td>
+            <td style="padding: 4px;">
+                <input type="number" step="0.01" name="amount_${currentIndex}" placeholder="0.00" required style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </td>
+        `;
+        
+        tbody.appendChild(tr);
+        
+        // Update the hidden input so the Python backend knows how many items to loop through!
+        countInput.value = currentIndex + 1; 
+    }
 
 function handleSaveHistory(event) {
     event.preventDefault();

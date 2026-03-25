@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, session, redirect, url_for, request, flash
-from src.app.database import get_user_groups, load_history, get_group_members, get_unpaid_expense_splits
+from src.app.database import get_user_groups, load_history, get_group_members, get_unpaid_expense_splits, get_subscription
 from src.app.routes.utilities import calculate_utilities, get_member_names
 from src.app.core.notifications import generate_pdf_breakdown, send_email_with_pdf
+from datetime import datetime
 
 dashboard = Blueprint('dashboard', __name__)
 
@@ -66,7 +67,23 @@ def index():
                 add_debt(name, 'expenses', amt)
                 
         # 3. Subscriptions (Logic placeholder for when subscription tracking is added)
-        # add_debt(name, 'subscriptions', 0.0)
+        subs = get_subscription(user_id, gid)
+        if subs:
+            current_day = datetime.today().day
+            members = get_group_members(gid)
+            num_people = len(members)
+            
+            if num_people > 0:
+                for sub in subs:
+                    # Only charge them if the billing day has passed for this month
+                    if current_day >= sub['billing_day']:
+                        # Divide the cost evenly among all members
+                        split_amt = round(float(sub['amount']) / num_people, 2)
+                        
+                        for m in members:
+                            # Assign the debt to everyone except the owner
+                            if m.get('role') != 'owner':
+                                add_debt(m['member_name'], 'subscriptions', split_amt)
         
     # Convert dict to list for the template
     debtors = list(debtors_dict.values())
