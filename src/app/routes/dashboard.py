@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, session, redirect, url_for, request, flash
 from src.app.database import get_user_groups, load_history, get_group_members, get_unpaid_expense_splits
 from src.app.routes.utilities import calculate_utilities, get_member_names
-from src.app.core.notifications import generate_pdf_breakdown, send_email_with_pdf, send_sms_summary
+from src.app.core.notifications import generate_pdf_breakdown, send_email_with_pdf
 
 dashboard = Blueprint('dashboard', __name__)
 
@@ -100,15 +100,6 @@ def send_notification():
             pdf_bytes = generate_pdf_breakdown(name, total, util, exp, sub)
             send_email_with_pdf(email, name, pdf_bytes)
             flash(f"Breakdown PDF emailed to {name} at {email}!", "success")
-            
-        elif method == 'sms':
-            phone = request.form.get('phone')
-            if not phone:
-                flash("Phone number is required.", "danger")
-                return redirect(url_for('dashboard.index'))
-                
-            send_sms_summary(phone, name, total, util, exp, sub)
-            flash(f"Text summary sent to {name} at {phone}!", "success")
             
     except Exception as e:
         flash(f"Failed to send notification: {str(e)}", "danger")

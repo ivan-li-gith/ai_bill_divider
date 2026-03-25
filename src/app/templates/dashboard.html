@@ -54,37 +54,20 @@
                     <div class="d-flex align-center" style="gap: 1.5rem;">
                         <h3 style="margin: 0; color: #dc3545;">${{ "%.2f"|format(person.total) }}</h3>
                         
-                        <div class="d-flex align-center" style="gap: 0.5rem;">
-                            <form action="{{ url_for('dashboard.send_notification') }}" method="POST" style="margin: 0;">
-                                <input type="hidden" name="name" value="{{ person.name }}">
-                                <input type="hidden" name="total" value="{{ person.total }}">
-                                <input type="hidden" name="utilities" value="{{ person.utilities }}">
-                                <input type="hidden" name="expenses" value="{{ person.expenses }}">
-                                <input type="hidden" name="subscriptions" value="{{ person.subscriptions }}">
-                                <input type="hidden" name="method" value="email">
-                                <input type="hidden" name="email" value="{{ person.email }}">
-                                
-                                <button type="submit" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.85rem; border-radius: 4px;" 
-                                    {% if not person.email %}disabled title="Add an email in the Groups tab to enable"{% endif %}>
-                                    📧 Email
-                                </button>
-                            </form>
-
-                            <form action="{{ url_for('dashboard.send_notification') }}" method="POST" style="margin: 0;">
-                                <input type="hidden" name="name" value="{{ person.name }}">
-                                <input type="hidden" name="total" value="{{ person.total }}">
-                                <input type="hidden" name="utilities" value="{{ person.utilities }}">
-                                <input type="hidden" name="expenses" value="{{ person.expenses }}">
-                                <input type="hidden" name="subscriptions" value="{{ person.subscriptions }}">
-                                <input type="hidden" name="method" value="sms">
-                                <input type="hidden" name="phone" value="{{ person.phone }}">
-                                
-                                <button type="submit" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.85rem; border-radius: 4px;" 
-                                    {% if not person.phone %}disabled title="Add a phone number in the Groups tab to enable"{% endif %}>
-                                    📱 Text
-                                </button>
-                            </form>
-                        </div>
+                        <form action="{{ url_for('dashboard.send_notification') }}" method="POST" style="margin: 0;">
+                            <input type="hidden" name="name" value="{{ person.name }}">
+                            <input type="hidden" name="total" value="{{ person.total }}">
+                            <input type="hidden" name="utilities" value="{{ person.utilities }}">
+                            <input type="hidden" name="expenses" value="{{ person.expenses }}">
+                            <input type="hidden" name="subscriptions" value="{{ person.subscriptions }}">
+                            <input type="hidden" name="method" value="email">
+                            <input type="hidden" name="email" value="{{ person.email }}">
+                            
+                            <button type="submit" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.85rem; border-radius: 4px;" 
+                                {% if not person.email %}disabled title="Add an email in the Groups tab to enable"{% endif %}>
+                                📧 Email PDF
+                            </button>
+                        </form>
                     </div>
                 </div>
                 
