@@ -14,9 +14,13 @@ def save_utility_bills(user_id, df):
     df_mapped.to_sql("utility_bills", engine, if_exists="append", index=False)
 
 def get_utility_bills(user_id, group_id=None):
-    if group_id:
-        query = text("SELECT * FROM utility_bills WHERE user_id = :uid AND group_id = :gid")
-        df = pd.read_sql(query, engine, params={"uid": user_id, "gid": group_id})
+    if group_id is not None and group_id != 0:
+        if group_id == -1:
+            query = text("SELECT * FROM utility_bills WHERE user_id = :uid AND group_id IS NULL")
+            df = pd.read_sql(query, engine, params={"uid": user_id})
+        else:
+            query = text("SELECT * FROM utility_bills WHERE user_id = :uid AND group_id = :gid")
+            df = pd.read_sql(query, engine, params={"uid": user_id, "gid": group_id})
     else:
         query = text("SELECT * FROM utility_bills WHERE user_id = :uid")
         df = pd.read_sql(query, engine, params={"uid": user_id})
@@ -32,7 +36,12 @@ def get_utility_bills(user_id, group_id=None):
 
 # deletes old records and saves new record 
 def save_utility_splits(user_id, df, month, group_id):
-    db_session.query(UtilitySplit).filter_by(billing_month=month, user_id=user_id, group_id=group_id).delete()
+    db_group_id = None if group_id == -1 else group_id
+    
+    if db_group_id is None:
+        db_session.query(UtilitySplit).filter_by(billing_month=month, user_id=user_id, group_id=None).delete()
+    else:
+        db_session.query(UtilitySplit).filter_by(billing_month=month, user_id=user_id, group_id=db_group_id).delete()
     db_session.commit()
     
     df_mapped = df.rename(columns={
@@ -44,12 +53,15 @@ def save_utility_splits(user_id, df, month, group_id):
     })
     df_mapped["billing_month"] = month
     df_mapped["user_id"] = user_id
-    df_mapped["group_id"] = group_id
+    df_mapped["group_id"] = db_group_id
     
     cols = ["user_id", "group_id", "billing_month", "roommate_name", "current_month_split", "rollover_amount", "total_owed", "is_paid"]
     df_mapped[cols].to_sql("utility_splits", engine, if_exists="append", index=False)
 
 # tells us who has paid
 def get_utility_split_status(user_id, month, group_id):
-    splits = db_session.query(UtilitySplit).filter_by(billing_month=month, user_id=user_id, group_id=group_id).all()
+    if group_id is None or group_id == -1:
+        splits = db_session.query(UtilitySplit).filter_by(billing_month=month, user_id=user_id, group_id=None).all()
+    else:
+        splits = db_session.query(UtilitySplit).filter_by(billing_month=month, user_id=user_id, group_id=group_id).all()
     return {split.roommate_name: split.is_paid for split in splits}

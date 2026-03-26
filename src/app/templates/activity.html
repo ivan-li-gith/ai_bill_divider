@@ -12,6 +12,7 @@
                     <form action="{{ url_for('activity.index') }}" method="GET" id="groupFilterForm">
                         <select class="form-select form-select-sm" name="group_id" id="group_id_select" style="border-radius: 6px;">
                             <option value="0" {% if selected_group_id == 0 %}selected{% endif %}>All Groups</option>
+                            <option value="-1" {% if selected_group_id == -1 %}selected{% endif %}>Just Me</option>
                             {% for group in groups %}
                                 <option value="{{ group.group_id }}" {% if selected_group_id == group.group_id %}selected{% endif %}>
                                     {{ group.group_name }}
@@ -205,7 +206,7 @@
                                 </div>
 
                                 <form action="{{ url_for('utilities.update_status') }}" method="POST">
-                                    <input type="hidden" name="group_id" value="{{ display.group_id }}">
+                                    <input type="hidden" name="group_id" value="{{ display.group_id if display.group_id is not none else -1 }}">
                                     <input type="hidden" name="month" value="{{ display.month }}">
                                     <table>
                                         <thead>
@@ -333,8 +334,8 @@
                 <form action="{{ url_for('utilities.upload') }}" method="POST" enctype="multipart/form-data">
                     <div class="form-group mb-3">
                         <label class="form-label fw-semibold text-secondary">Split With</label>
-                        <select name="group_id" class="form-select" style="border-radius: 8px;" required>
-                            <option value="" disabled {% if selected_group_id == 0 %}selected{% endif %}>Select a group or individual...</option>
+                        <select name="group_id" class="form-select" style="border-radius: 8px;">
+                            <option value="0" {% if selected_group_id == 0 %}selected{% endif %}>Just Me (Personal Expense)</option>
                             {% for group in groups %}
                                 <option value="{{ group.group_id }}" {% if selected_group_id == group.group_id %}selected{% endif %}>{{ group.group_name }}</option>
                             {% endfor %}
@@ -364,8 +365,8 @@
                 <form action="{{ url_for('expenses.upload_receipt') }}" method="POST" enctype="multipart/form-data">
                     <div class="form-group mb-3">
                         <label class="form-label fw-semibold text-secondary">Split With</label>
-                        <select name="group_id" class="form-select" style="border-radius: 8px;" required>
-                            <option value="" disabled {% if selected_group_id == 0 %}selected{% endif %}>Select a group or individual...</option>
+                        <select name="group_id" class="form-select" style="border-radius: 8px;">
+                            <option value="0" {% if selected_group_id == 0 %}selected{% endif %}>Just Me (Personal Expense)</option>
                             {% for group in groups %}
                                 <option value="{{ group.group_id }}" {% if selected_group_id == group.group_id %}selected{% endif %}>{{ group.group_name }}</option>
                             {% endfor %}
@@ -395,8 +396,8 @@
                 <form action="{{ url_for('expenses.manual_add') }}" method="POST">
                     <div class="form-group mb-3">
                         <label class="form-label fw-semibold text-secondary">Split With</label>
-                        <select name="group_id" class="form-select" style="border-radius: 8px;" required>
-                            <option value="" disabled {% if selected_group_id == 0 %}selected{% endif %}>Select a group or individual...</option>
+                        <select name="group_id" class="form-select" style="border-radius: 8px;">
+                            <option value="0" {% if selected_group_id == 0 %}selected{% endif %}>Just Me (Personal Expense)</option>
                             {% for group in groups %}
                                 <option value="{{ group.group_id }}" {% if selected_group_id == group.group_id %}selected{% endif %}>{{ group.group_name }}</option>
                             {% endfor %}
@@ -437,8 +438,8 @@
                 <form action="{{ url_for('subscriptions.add') }}" method="POST">
                     <div class="form-group mb-3">
                         <label class="form-label fw-semibold text-secondary">Split With</label>
-                        <select name="group_id" class="form-select" style="border-radius: 8px;" required>
-                            <option value="" disabled {% if selected_group_id == 0 %}selected{% endif %}>Select a group or individual...</option>
+                        <select name="group_id" class="form-select" style="border-radius: 8px;">
+                            <option value="0" {% if selected_group_id == 0 %}selected{% endif %}>Just Me (Personal Expense)</option>
                             {% for group in groups %}
                                 <option value="{{ group.group_id }}" {% if selected_group_id == group.group_id %}selected{% endif %}>{{ group.group_name }}</option>
                             {% endfor %}

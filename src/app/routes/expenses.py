@@ -9,6 +9,11 @@ expenses = Blueprint('expenses', __name__)
 @expenses.route('/expenses/upload_receipt', methods=['POST'])
 def upload_receipt():
     group_id = request.form.get("group_id")
+    if not group_id or group_id == "0" or group_id == "None":
+        group_id = None
+    else:
+        group_id = int(group_id)
+        
     file = request.files.get('receipt_image')
     
     if file and file.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.heic')):
@@ -30,9 +35,10 @@ def manual_add():
 
     user_id = session["user_id"]
     group_id = request.form.get("group_id")
-    
-    if not group_id:
+    if not group_id or group_id == "0" or group_id == "None":
         group_id = None
+    else:
+        group_id = int(group_id)
         
     item_name = request.form.get("item_name")
     amount = float(request.form.get("amount", 0))
@@ -47,7 +53,7 @@ def manual_add():
         except Exception as e:
             flash(f"Error saving expense: {e}", "danger")
             
-    return redirect(url_for('activity.index', group_id=group_id))
+    return redirect(url_for('activity.index', group_id=group_id or 0))
 
 @expenses.route('/expenses/delete/<int:expense_id>', methods=['POST'])
 def delete(expense_id):
@@ -70,8 +76,7 @@ def save_staged():
     
     user_id = session['user_id']
     group_id = session.get('staged_expense_group')
-    
-    if not group_id:
+    if str(group_id) == "0" or str(group_id) == "None":
         group_id = None
     
     item_count = int(request.form.get('item_count', 0))
@@ -95,4 +100,4 @@ def save_staged():
     else:
         flash("No items were saved.", "warning")
         
-    return redirect(url_for('activity.index', group_id=group_id))
+    return redirect(url_for('activity.index', group_id=group_id or 0))

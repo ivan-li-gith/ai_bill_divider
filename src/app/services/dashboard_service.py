@@ -2,6 +2,8 @@ import json
 from datetime import datetime
 from src.app.database import get_user_groups, get_utility_bills, get_group_members, get_unpaid_expense_splits, get_subscriptions
 from src.app.services.utility_service import calculate_utilities, get_member_names
+from src.app.database.models import Expense, Subscription, UtilityBill
+from src.app.database.db import db_session
 
 # updates members debt
 def add_debt(name, category, amount, debtors_dict, contact_map):
@@ -73,4 +75,17 @@ def get_dashboard_metrics(user_id, group_id):
         
     debtors = list(debtors_dict.values())
     total_uncollected = sum(d['total'] for d in debtors)
-    return debtors, total_uncollected, user_groups
+
+    # calculate personal expenses
+    my_expenses_total = 0.0
+    
+    utils = db_session.query(UtilityBill).filter_by(user_id=user_id).filter(UtilityBill.group_id.is_(None)).all()
+    my_expenses_total += sum(float(u.total_amount_due or 0) for u in utils)
+    
+    exps = db_session.query(Expense).filter_by(user_id=user_id).filter(Expense.group_id.is_(None)).all()
+    my_expenses_total += sum(float(e.amount or 0) for e in exps)
+    
+    subs = db_session.query(Subscription).filter_by(user_id=user_id).filter(Subscription.group_id.is_(None)).all()
+    my_expenses_total += sum(float(s.amount or 0) for s in subs)
+
+    return debtors, total_uncollected, user_groups, my_expenses_total

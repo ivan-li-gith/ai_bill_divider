@@ -21,13 +21,22 @@ def index():
     subs = []
     month_displays = []
 
-    # goes through every group and combines expenses and utilties for the all filter
+    # all groups 
     if group_id == 0:
         subs = get_subscriptions(user_id, 0)
+        personal_exps = get_expenses(None, user_id=user_id)
+        exps.extend(personal_exps)
         
+        b_history_personal = get_utility_bills(user_id, -1)
+        if not b_history_personal.empty:
+            md = calculate_utilities(user_id, b_history_personal, ["Me"], None)
+            for m in md:
+                m['display_title'] = f"{m['month']} (Just Me)"
+            month_displays.extend(md)
+
         for g in user_groups:
             gid = g['group_id']
-            g_exps = get_expenses(gid)
+            g_exps = get_expenses(gid, user_id=user_id)
             exps.extend(g_exps)
             b_history = get_utility_bills(user_id, gid)
             
@@ -42,9 +51,22 @@ def index():
                 
         exps.sort(key=lambda x: str(x['expense_date']), reverse=True)
         month_displays.reverse()
+
+    # just me
+    elif group_id == -1:
+        exps = get_expenses(None, user_id=user_id)
+        subs = get_subscriptions(user_id, -1)
+        b_history_personal = get_utility_bills(user_id, -1)
+        if not b_history_personal.empty:
+            md = calculate_utilities(user_id, b_history_personal, ["Me"], None)
+            for m in md:
+                m['display_title'] = f"{m['month']} (Just Me)"
+            month_displays.extend(md)
+        month_displays.reverse()
+
+    # specific group
     else:
-        # fetches expenses for the selected group
-        exps = get_expenses(group_id)
+        exps = get_expenses(group_id, user_id=user_id)
         subs = get_subscriptions(user_id, group_id)
         billing_history = get_utility_bills(user_id, group_id)
         

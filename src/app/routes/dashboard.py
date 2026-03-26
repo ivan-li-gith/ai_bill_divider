@@ -12,9 +12,9 @@ def index():
     
     user_id = session["user_id"]
     group_id = request.args.get('group_id', 0, type=int)
-    debtors, total_uncollected, user_groups = get_dashboard_metrics(user_id, group_id)
+    debtors, total_uncollected, user_groups, my_expenses_total = get_dashboard_metrics(user_id, group_id)
             
-    return render_template('dashboard.html', debtors=debtors, total_uncollected=total_uncollected, groups=user_groups, selected_group_id=group_id)
+    return render_template('dashboard.html', debtors=debtors, total_uncollected=total_uncollected, groups=user_groups, selected_group_id=group_id, my_expenses_total=my_expenses_total)
 
 # generates pdf and sends it via email to notify user
 @dashboard.route('/dashboard/notify', methods=['POST'])

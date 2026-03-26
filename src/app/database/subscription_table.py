@@ -8,15 +8,19 @@ def add_subscription(user_id, group_id, name, amount, day):
 
 def get_subscriptions(user_id, group_id=None):
     query = db_session.query(Subscription).filter_by(user_id=user_id)
-    if group_id and group_id != 0:
-        query = query.filter_by(group_id=group_id)
-        
+    
+    if group_id is not None and group_id != 0:
+        if group_id == -1:
+            query = query.filter_by(group_id=None)
+        else:
+            query = query.filter_by(group_id=group_id)
+            
     subs = query.all()
     
     return [{
         "subscription_id": s.subscription_id, "group_id": s.group_id, 
         "expense_name": s.expense_name, "amount": s.amount, 
-        "billing_day": s.billing_day, "group_name": s.group.group_name if s.group else ""
+        "billing_day": s.billing_day, "group_name": s.group.group_name if s.group else "Just Me"
     } for s in subs]
 
 def update_subscription(subscription_id, name, amount, day):

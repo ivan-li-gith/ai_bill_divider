@@ -10,6 +10,10 @@ def add_expense(group_id, user_id, date, item_name, amount, payer_id, split_meth
     db_session.add(new_expense)
     db_session.flush() 
     
+    if group_id is None:
+        db_session.commit()
+        return
+    
     members = db_session.query(GroupMember).filter_by(group_id=group_id).all()
     if not members:
         db_session.rollback()
@@ -32,13 +36,23 @@ def add_expense(group_id, user_id, date, item_name, amount, payer_id, split_meth
     db_session.commit()
 
 # fetches expenses for a group
-def get_expenses(group_id):
-    expenses = db_session.query(Expense).filter_by(group_id=group_id).order_by(Expense.expense_date.desc()).all()
+def get_expenses(group_id, user_id=None):
+    query = db_session.query(Expense)
+    
+    if group_id is not None and group_id != -1:
+        query = query.filter_by(group_id=group_id)
+    else:
+        if user_id:
+            query = query.filter_by(group_id=None, user_id=user_id)
+        else:
+            query = query.filter_by(group_id=None)
+            
+    expenses = query.order_by(Expense.expense_date.desc()).all()
     return [{
         "expense_id": e.expense_id, "expense_date": e.expense_date, 
         "description": e.description, "amount": e.amount, 
         "payer_id": e.payer_id, "split_method": e.split_method,
-        "group_name": e.group.group_name if e.group else ""
+        "group_name": e.group.group_name if e.group else "Just Me"
     } for e in expenses]
  
 def delete_expense(expense_id):

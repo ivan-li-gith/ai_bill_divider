@@ -18,13 +18,26 @@
         </form>
     </div>
 
-    <div class="card shadow-sm mb-4">
-        <div class="card-body text-center">
-            <h5 class="text-muted mb-1">Total Uncollected</h5>
-            <h1 class="display-4 text-success">${{ "%.2f"|format(total_uncollected) }}</h1>
+    <div class="row mb-5">
+        <div class="col-md-6 mb-3 mb-md-0">
+            <div class="card shadow-sm h-100" style="border-radius: 12px; border: 1px solid #eaeaea;">
+                <div class="card-body text-center">
+                    <h5 class="text-muted mb-1"><i class="bi bi-person-fill me-2"></i>My Personal Expenses</h5>
+                    <h1 class="display-4 text-primary">${{ "%.2f"|format(my_expenses_total) }}</h1>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100" style="border-radius: 12px; border: 1px solid #eaeaea;">
+                <div class="card-body text-center">
+                    <h5 class="text-muted mb-1"><i class="bi bi-people-fill me-2"></i>Total Owed to Me</h5>
+                    <h1 class="display-4 text-success">${{ "%.2f"|format(total_uncollected) }}</h1>
+                </div>
+            </div>
         </div>
     </div>
 
+    <h4 class="mb-3 text-secondary" style="font-weight: 600;">What People Owe</h4>
     <div class="row">
         {% if debtors %}
             {% for debtor in debtors %}
