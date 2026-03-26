@@ -1,278 +1,479 @@
 {% extends "navbar_base.html" %}
-{% block title %}Activity Ledger{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-between align-center mb-4">
-    <h2>Activity Ledger</h2>
+<div class="container-fluid mt-3" style="max-width: 1300px;">
     
-    <div class="d-flex align-center" style="gap: 1rem;">
-        <form action="{{ url_for('activity.index') }}" method="GET" class="d-flex align-center" style="gap: 0.5rem;">
-            <label style="font-weight: 600; white-space: nowrap; color: #666;">Filter by:</label>
-            <select name="group_id" onchange="this.form.submit()" style="padding: 8px; border-radius: 4px; min-width: 150px; border: 1px solid #ddd;">
-                <option value="0" {% if selected_group_id == 0 %}selected{% endif %}>-- ALL --</option>
-                
-                <optgroup label="Groups">
-                    {% for group in groups if group.group_type == 'group' %}
-                        <option value="{{ group.group_id }}" {% if group.group_id == selected_group_id %}selected{% endif %}>{{ group.group_name }}</option>
-                    {% endfor %}
-                </optgroup>
-                
-                <optgroup label="Individuals">
-                    {% for group in groups if group.group_type == 'individual' %}
-                        <option value="{{ group.group_id }}" {% if group.group_id == selected_group_id %}selected{% endif %}>{{ group.group_name }}</option>
-                    {% endfor %}
-                </optgroup>
-            </select>
-        </form>
-        
-        <button class="btn btn-pink" style="width: auto;" onclick="openUnifiedModal()">+ Add Expense</button>
-    </div>
-</div>
-
-{% if session.staged_bills %}
-<div id="stagingModal" class="modal-overlay" style="display: flex; z-index: 2000;">
-    <div class="auth-card" style="max-width: 650px; position: relative; max-height: 90vh; overflow-y: auto;">
-        <span class="close-btn" onclick="document.getElementById('stagingModal').style.display='none'">&times;</span>
-        
-        <h3 style="margin-top: 0; text-align: center;">Review Extracted Data</h3>
-        <div class="text-center mb-4">
-            <span class="badge" style="background: #eb4f7a; color: white;">{{ session.staged_bills|length }} Staged Bills</span>
-        </div>
-        
-        <form action="{{ url_for('utilities.save') }}" method="POST" onsubmit="handleSaveHistory(event)">
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; margin-bottom: 1.5rem; text-align: left;">
-                    <thead>
-                        <tr style="background-color: #f8f9fa;">
-                            <th style="padding: 8px;">Service</th>
-                            <th style="padding: 8px;">Month</th>
-                            <th style="padding: 8px;">Period</th>
-                            <th style="padding: 8px;">Amount ($)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for bill in session.staged_bills %}
-                        <tr>
-                            <td style="padding: 4px;"><input type="text" name="service_{{ loop.index0 }}" value="{{ bill['Service Name'] }}" required style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;"></td>
-                            <td style="padding: 4px;"><input type="text" name="month_{{ loop.index0 }}" value="{{ bill['Billing Month'] }}" required style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;"></td>
-                            <td style="padding: 4px;"><input type="text" name="period_{{ loop.index0 }}" value="{{ bill['Service Period'] }}" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;"></td>
-                            <td style="padding: 4px;"><input type="number" step="0.01" name="amount_{{ loop.index0 }}" value="{{ bill['Total Amount Due'] }}" required style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;"></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            <input type="hidden" name="bill_count" value="{{ session.staged_bills|length }}">
-            <button type="submit" class="btn btn-pink" style="width: 100%;">Confirm & Save to History</button>
-        </form>
-    </div>
-</div>
-
-{% endif %} {% if session.staged_receipt_items %}
-<div id="receiptStagingModal" class="modal-overlay" style="display: flex; z-index: 2000;">
-    <div class="auth-card" style="max-width: 650px; position: relative; max-height: 90vh; overflow-y: auto;">
-        <span class="close-btn" onclick="document.getElementById('receiptStagingModal').style.display='none'">&times;</span>
-        
-        <h3 style="margin-top: 0; text-align: center;">Review Scanned Receipt</h3>
-        <div class="text-center mb-4">
-            <span class="badge" style="background: #eb4f7a; color: white;">{{ session.staged_receipt_items|length }} Items Found</span>
-        </div>
-        
-        <form action="{{ url_for('expenses.save_staged') }}" method="POST">
-            
-            <div class="form-group mb-3">
-                <label>Date of Purchase</label>
-                <input type="date" name="expense_date" id="receiptDate" required style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
-            </div>
-
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; margin-bottom: 1rem; text-align: left;">
-                    <thead>
-                        <tr style="background-color: #f8f9fa;">
-                            <th style="padding: 8px;">Item Name</th>
-                            <th style="padding: 8px; width: 30%;">Amount ($)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="receiptItemsBody">
-                        {% for item in session.staged_receipt_items %}
-                        <tr>
-                            <td style="padding: 4px;">
-                                <input type="text" name="name_{{ loop.index0 }}" value="{{ item['Service Name'] }}" required style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
-                            </td>
-                            <td style="padding: 4px;">
-                                <input type="number" step="0.01" name="amount_{{ loop.index0 }}" value="{{ item['Total Amount Due'] }}" required style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            
-            <button type="button" class="btn btn-outline mb-3" style="width: 100%; border-style: dashed; padding: 10px;" onclick="addReceiptItemRow()">
-                + Add Missing Item
-            </button>
-            
-            <p style="font-size: 0.85rem; color: #666; text-align: center;">*Set amount to 0 if you want to skip an item.</p>
-            <input type="hidden" name="item_count" id="receiptItemCount" value="{{ session.staged_receipt_items|length }}">
-            <button type="submit" class="btn btn-pink" style="width: 100%;">Confirm & Save Items</button>
-        </form>
-    </div>
-</div>
-{% endif %}
-
-<div class="card mb-4" style="border: 1px solid #ddd; overflow: hidden;">
-    <div class="card-header d-flex justify-between align-center" onclick="toggleSection(this)" style="background-color: #f8f9fa; cursor: pointer; user-select: none;">
-        <h3 style="margin: 0; font-size: 1.1rem;">One-Off Expenses</h3>
-        <span class="caret-icon" style="transition: transform 0.3s ease; transform: rotate(180deg);">▼</span>
-    </div>
-    <div class="card-body section-content" style="display: block; border-top: 1px solid #eee; padding: 0;">
-        {% if not expenses %}
-            <div class="text-center" style="padding: 2rem; color: #999;">No one-off expenses recorded.</div>
-        {% else %}
-            <table style="margin: 0;">
-                <thead>
-                    <tr style="background-color: #f8f9fa;">
-                        <th>Date</th>
-                        <th>Description</th>
-                        <th style="text-align: right;">Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for exp in expenses %}
-                    <tr>
-                        <td style="color: #666;">{{ exp.expense_date }}</td>
-                        <td style="font-weight: 600;">{{ exp.description }}</td>
-                        <td style="text-align: right; font-weight: bold;">${{ "%.2f"|format(exp.amount) }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% endif %}
-    </div>
-</div>
-
-<div class="card mb-4" style="border: 1px solid #ddd; overflow: hidden;">
-    <div class="card-header d-flex justify-between align-center" onclick="toggleSection(this)" style="background-color: #f8f9fa; cursor: pointer; user-select: none;">
-        <h3 style="margin: 0; font-size: 1.1rem;">Subscriptions</h3>
-        <span class="caret-icon" style="transition: transform 0.3s ease;">▼</span>
-    </div>
-    <div class="card-body section-content" style="display: none; border-top: 1px solid #eee; padding: 0;">
-        {% if not subscriptions %}
-            <div class="text-center" style="padding: 2rem; color: #999;">No subscriptions recorded.</div>
-        {% else %}
-            <table style="margin: 0;">
-                <thead>
-                    <tr style="background-color: #f8f9fa;">
-                        <th>Billing Day</th>
-                        <th>Subscription</th>
-                        <th style="text-align: right;">Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for sub in subscriptions %}
-                    <tr>
-                        <td style="color: #666;">Day {{ sub.billing_day }} (Monthly)</td>
-                        <td style="font-weight: 600;">{{ sub.expense_name }}</td>
-                        <td style="text-align: right; font-weight: bold;">${{ "%.2f"|format(sub.amount) }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% endif %}
-    </div>
-</div>
-
-<div class="card mb-4" style="border: 1px solid #ddd; overflow: hidden;">
-    <div class="card-header d-flex justify-between align-center" onclick="toggleSection(this)" style="background-color: #f8f9fa; cursor: pointer; user-select: none;">
-        <h3 style="margin: 0; font-size: 1.1rem;">Utilities</h3>
-        <span class="caret-icon" style="transition: transform 0.3s ease;">▼</span>
-    </div>
-    <div class="card-body section-content" style="display: none; border-top: 1px solid #eee;">
-        {% if not month_displays %}
-            <div class="text-center" style="padding: 2rem; color: #999;">No utility bills recorded.</div>
-        {% else %}
-            {% for display in month_displays %}
-            <div class="card mb-4" style="border: 1px solid #ddd; overflow: hidden;">
-                <div class="card-header d-flex justify-between align-center" 
-                     onclick="toggleSection(this)" 
-                     style="background-color: #212529; color: white; cursor: pointer; user-select: none;">
+    <div class="row">
+        <div class="col-md-3 mb-4">
+            <div class="card shadow-sm border-0" style="border-radius: 10px; height: fit-content;">
+                <div class="card-body p-3">
+                    <h6 class="card-title text-muted text-uppercase mb-2" style="font-weight: 700; font-size: 0.75rem; letter-spacing: 1px;">Filter View</h6>
                     
-                    <span>{{ display.display_title }}</span>
-                    
-                    <span class="caret-icon" style="transition: transform 0.3s ease;">▼</span>
-                </div>
-
-                <div class="card-body section-content" style="display: {{ 'block' if loop.first else 'none' }}; border-top: 1px solid #eee;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Service</th>
-                                <th>Period</th>
-                                <th>Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for _, row in display.df.iterrows() %}
-                            <tr>
-                                <td>{{ row['Service Name'] }}</td>
-                                <td>{{ row['Service Period'] }}</td>
-                                <td>${{ "%.2f"|format(row['Total Amount Due']) }}</td>
-                            </tr>
+                    <form action="{{ url_for('activity.index') }}" method="GET" id="groupFilterForm">
+                        <select class="form-select form-select-sm" name="group_id" id="group_id_select" style="border-radius: 6px;">
+                            <option value="0" {% if selected_group_id == 0 %}selected{% endif %}>All Groups</option>
+                            {% for group in groups %}
+                                <option value="{{ group.group_id }}" {% if selected_group_id == group.group_id %}selected{% endif %}>
+                                    {{ group.group_name }}
+                                </option>
                             {% endfor %}
-                        </tbody>
-                    </table>
-
-                    <div class="grid-2 mb-4">
-                        <div class="text-center" style="border: 1px solid #eee; padding: 1rem; border-radius: 8px;">
-                            <small style="color: #666;">TOTAL FOR MONTH</small><br>
-                            <strong>${{ "%.2f"|format(display.monthly_total) }}</strong>
-                        </div>
-                        <div class="text-center" style="border: 1px solid #eee; padding: 1rem; border-radius: 8px;">
-                            <small style="color: #666;">SPLIT PER PERSON</small><br>
-                            <strong>${{ "%.2f"|format(display.monthly_split) }}</strong>
-                        </div>
-                    </div>
-
-                    <form action="{{ url_for('utilities.update_status') }}" method="POST">
-                        <input type="hidden" name="group_id" value="{{ display.group_id }}">
-                        <input type="hidden" name="month" value="{{ display.month }}">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Roommate</th>
-                                    <th>Current Split</th>
-                                    <th>Total Owed</th>
-                                    <th>Paid?</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for _, row in display.roommates.iterrows() %}
-                                <tr>
-                                    <td>{{ row['Roommate Name'] }}</td>
-                                    <td>${{ "%.2f"|format(row['Current Month Split']) }}</td>
-                                    <td>
-                                        <strong id="total-owed-{{ display.month }}-{{ row['Roommate Name'] }}">
-                                            ${{ "%.2f"|format(row['Total Owed']) }}
-                                        </strong>
-                                    </td>
-                                    <td>
-                                        <input type="hidden" id="split-input-{{ display.month }}-{{ row['Roommate Name'] }}" name="split_{{ display.month }}_{{ row['Roommate Name'] }}" value="{{ row['Current Month Split'] }}">
-                                        <input type="hidden" id="rollover-input-{{ display.month }}-{{ row['Roommate Name'] }}" name="rollover_{{ display.month }}_{{ row['Roommate Name'] }}" value="{{ row['Rollover Amount'] }}">
-                                        <input type="hidden" id="total-input-{{ display.month }}-{{ row['Roommate Name'] }}" name="total_{{ display.month }}_{{ row['Roommate Name'] }}" value="{{ row['Total Owed'] }}">
-                                        <input type="checkbox" name="paid_{{ display.month }}_{{ row['Roommate Name'] }}" {% if row['Paid'] %}checked{% endif %} style="cursor: pointer; width: 18px; height: 18px;">
-                                        <span class="status-indicator" id="status-{{ display.month }}-{{ row['Roommate Name'] }}"></span>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                        </select>
                     </form>
                 </div>
             </div>
-            {% endfor %}
-        {% endif %}
+
+            <div class="card mt-3 shadow-sm border-0" style="border-radius: 10px; height: fit-content;">
+                <div class="card-body p-3">
+                    <h6 class="card-title text-muted text-uppercase mb-3" style="font-weight: 700; font-size: 0.75rem; letter-spacing: 1px;">Actions</h6>
+                    
+                    <button class="btn btn-pink w-100 mb-2 text-start" data-bs-toggle="modal" data-bs-target="#uploadPDFModal" style="border-radius: 8px; font-size: 0.9rem;">
+                        <i class="bi bi-file-earmark-pdf me-2"></i>+ Utility Bill (PDF)
+                    </button>
+                    
+                    <button class="btn btn-pink w-100 mb-2 text-start" data-bs-toggle="modal" data-bs-target="#uploadReceiptModal" style="border-radius: 8px; font-size: 0.9rem;">
+                        <i class="bi bi-receipt me-2"></i>+ Scan Receipt (Image)
+                    </button>
+                    
+                    <button class="btn btn-pink w-100 mb-2 text-start" data-bs-toggle="modal" data-bs-target="#manualEntryModal" style="border-radius: 8px; font-size: 0.9rem;">
+                        <i class="bi bi-keyboard me-2"></i>+ Manual Entry
+                    </button>
+
+                    <button class="btn btn-pink w-100 text-start" data-bs-toggle="modal" data-bs-target="#addSubscriptionModal" style="border-radius: 8px; font-size: 0.9rem;">
+                        <i class="bi bi-arrow-repeat me-2"></i>+ Add Subscription
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <h2 class="fw-bold mb-4">Activity Ledger</h2>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            {% if session.staged_bills %}
+            <div id="stagingModal" class="modal-overlay" style="display: flex; z-index: 2000;">
+                <div class="auth-card" style="max-width: 650px; position: relative; max-height: 90vh; overflow-y: auto;">
+                    <span class="close-btn" onclick="document.getElementById('stagingModal').style.display='none'">&times;</span>
+                    
+                    <h3 style="margin-top: 0; text-align: center;">Review Extracted Data</h3>
+                    <div class="text-center mb-4">
+                        <span class="badge" style="background: #eb4f7a; color: white;">{{ session.staged_bills|length }} Staged Bills</span>
+                    </div>
+                    
+                    <form action="{{ url_for('utilities.save') }}" method="POST" onsubmit="handleSaveHistory(event)">
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; margin-bottom: 1.5rem; text-align: left;">
+                                <thead>
+                                    <tr style="background-color: #f8f9fa;">
+                                        <th style="padding: 8px;">Service</th>
+                                        <th style="padding: 8px;">Month</th>
+                                        <th style="padding: 8px;">Period</th>
+                                        <th style="padding: 8px;">Amount ($)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for bill in session.staged_bills %}
+                                    <tr>
+                                        <td style="padding: 4px;"><input type="text" name="service_{{ loop.index0 }}" value="{{ bill['Service Name'] }}" required style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;"></td>
+                                        <td style="padding: 4px;"><input type="text" name="month_{{ loop.index0 }}" value="{{ bill['Billing Month'] }}" required style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;"></td>
+                                        <td style="padding: 4px;"><input type="text" name="period_{{ loop.index0 }}" value="{{ bill['Service Period'] }}" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;"></td>
+                                        <td style="padding: 4px;"><input type="number" step="0.01" name="amount_{{ loop.index0 }}" value="{{ bill['Total Amount Due'] }}" required style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;"></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <input type="hidden" name="bill_count" value="{{ session.staged_bills|length }}">
+                        <button type="submit" class="btn btn-pink" style="width: 100%;">Confirm & Save to History</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %} 
+            
+            {% if session.staged_receipt_items %}
+            <div id="receiptStagingModal" class="modal-overlay" style="display: flex; z-index: 2000;">
+                <div class="auth-card" style="max-width: 650px; position: relative; max-height: 90vh; overflow-y: auto;">
+                    <span class="close-btn" onclick="document.getElementById('receiptStagingModal').style.display='none'">&times;</span>
+                    
+                    <h3 style="margin-top: 0; text-align: center;">Review Scanned Receipt</h3>
+                    <div class="text-center mb-4">
+                        <span class="badge" style="background: #eb4f7a; color: white;">{{ session.staged_receipt_items|length }} Items Found</span>
+                    </div>
+                    
+                    <form action="{{ url_for('expenses.save_staged') }}" method="POST">
+                        <div class="form-group mb-3">
+                            <label>Date of Purchase</label>
+                            <input type="date" name="expense_date" id="receiptDate" required style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; margin-bottom: 1rem; text-align: left;">
+                                <thead>
+                                    <tr style="background-color: #f8f9fa;">
+                                        <th style="padding: 8px;">Item Name</th>
+                                        <th style="padding: 8px; width: 30%;">Amount ($)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="receiptItemsBody">
+                                    {% for item in session.staged_receipt_items %}
+                                    <tr>
+                                        <td style="padding: 4px;">
+                                            <input type="text" name="name_{{ loop.index0 }}" value="{{ item['Service Name'] }}" required style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                                        </td>
+                                        <td style="padding: 4px;">
+                                            <input type="number" step="0.01" name="amount_{{ loop.index0 }}" value="{{ item['Total Amount Due'] }}" required style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <button type="button" class="btn btn-outline mb-3" style="width: 100%; border-style: dashed; padding: 10px;" onclick="addReceiptItemRow()">
+                            + Add Missing Item
+                        </button>
+                        <p style="font-size: 0.85rem; color: #666; text-align: center;">*Set amount to 0 if you want to skip an item.</p>
+                        <input type="hidden" name="item_count" id="receiptItemCount" value="{{ session.staged_receipt_items|length }}">
+                        <button type="submit" class="btn btn-pink" style="width: 100%;">Confirm & Save Items</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="alert alert-info border-0 shadow-sm" style="background-color: #f6fdfc; color: #1a6d68; border-radius: 10px;">
+                <strong>Welcome to your combined Ledger!</strong> Use the dropdown on the left to filter specific houses/groups or view a global summary.
+            </div>
+
+            <div class="shadow-sm bg-white mb-4" style="border-radius: 12px; border: 1px solid #eaeaea;">
+                <div class="ledger-section-header p-3 d-flex justify-content-between align-items-center" onclick="toggleSection(this)" style="cursor: pointer;">
+                    <h4 class="m-0 fw-bold" style="color: #4a4a4a;"><i class="bi bi-water me-2 text-primary"></i>Utilities</h4>
+                    <span class="fs-5 text-muted caret-icon" style="transition: transform 0.2s ease;"><i class="bi bi-caret-down-fill"></i></span>
+                </div>
+                
+                <div class="p-3 border-top" style="display: none;">
+                    {% if not month_displays %}
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-receipt fs-1 d-block mb-3"></i>
+                            <p>No utility history yet. Use '+ Utility Bill' in the sidebar to add your first bill!</p>
+                        </div>
+                    {% else %}
+                        {% for display in month_displays %}
+                        <div class="card mb-4 shadow-sm" style="border: 1px solid #ddd; overflow: hidden; height: fit-content;">
+                            <div class="card-header d-flex justify-between align-center" 
+                                 onclick="toggleSection(this)" 
+                                 style="background-color: #212529; color: white; cursor: pointer; user-select: none;">
+                                <span>{{ display.display_title }}</span>
+                                <span class="caret-icon" style="transition: transform 0.3s ease;">▼</span>
+                            </div>
+
+                            <div class="card-body section-content" style="display: {{ 'block' if loop.first else 'none' }}; border-top: 1px solid #eee;">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Service</th>
+                                            <th>Period</th>
+                                            <th>Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for _, row in display.df.iterrows() %}
+                                        <tr>
+                                            <td>{{ row['Service Name'] }}</td>
+                                            <td>{{ row['Service Period'] }}</td>
+                                            <td>${{ "%.2f"|format(row['Total Amount Due']) }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+
+                                <div class="grid-2 mb-4">
+                                    <div class="text-center" style="border: 1px solid #eee; padding: 1rem; border-radius: 8px;">
+                                        <small style="color: #666;">TOTAL FOR MONTH</small><br>
+                                        <strong>${{ "%.2f"|format(display.monthly_total) }}</strong>
+                                    </div>
+                                    <div class="text-center" style="border: 1px solid #eee; padding: 1rem; border-radius: 8px;">
+                                        <small style="color: #666;">SPLIT PER PERSON</small><br>
+                                        <strong>${{ "%.2f"|format(display.monthly_split) }}</strong>
+                                    </div>
+                                </div>
+
+                                <form action="{{ url_for('utilities.update_status') }}" method="POST">
+                                    <input type="hidden" name="group_id" value="{{ display.group_id }}">
+                                    <input type="hidden" name="month" value="{{ display.month }}">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Roommate</th>
+                                                <th>Current Split</th>
+                                                <th>Total Owed</th>
+                                                <th>Paid?</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for _, row in display.roommates.iterrows() %}
+                                            <tr>
+                                                <td>{{ row['Roommate Name'] }}</td>
+                                                <td>${{ "%.2f"|format(row['Current Month Split']) }}</td>
+                                                <td>
+                                                    <strong id="total-owed-{{ display.month }}-{{ row['Roommate Name'] }}">
+                                                        ${{ "%.2f"|format(row['Total Owed']) }}
+                                                    </strong>
+                                                </td>
+                                                <td>
+                                                    <input type="hidden" id="split-input-{{ display.month }}-{{ row['Roommate Name'] }}" name="split_{{ display.month }}_{{ row['Roommate Name'] }}" value="{{ row['Current Month Split'] }}">
+                                                    <input type="hidden" id="rollover-input-{{ display.month }}-{{ row['Roommate Name'] }}" name="rollover_{{ display.month }}_{{ row['Roommate Name'] }}" value="{{ row['Rollover Amount'] }}">
+                                                    <input type="hidden" id="total-input-{{ display.month }}-{{ row['Roommate Name'] }}" name="total_{{ display.month }}_{{ row['Roommate Name'] }}" value="{{ row['Total Owed'] }}">
+                                                    <input type="checkbox" class="paid-checkbox" data-month="{{ display.month }}" data-name="{{ row['Roommate Name'] }}" name="paid_{{ display.month }}_{{ row['Roommate Name'] }}" {% if row['Paid'] %}checked{% endif %} style="cursor: pointer; width: 18px; height: 18px;">
+                                                    <span class="status-indicator" id="status-{{ display.month }}-{{ row['Roommate Name'] }}"></span>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="shadow-sm bg-white mb-4" style="border-radius: 12px; border: 1px solid #eaeaea;">
+                <div class="ledger-section-header p-3 d-flex justify-content-between align-items-center" onclick="toggleSection(this)" style="cursor: pointer;">
+                    <h4 class="m-0 fw-bold" style="color: #4a4a4a;"><i class="bi bi-credit-card me-2 text-success"></i>One-Off Expenses</h4>
+                    <span class="fs-5 text-muted caret-icon" style="transition: transform 0.2s ease;"><i class="bi bi-caret-down-fill"></i></span>
+                </div>
+                
+                <div class="p-3 border-top" style="display: none;">
+                    {% if not expenses %}
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-card-checklist fs-1 d-block mb-3"></i>
+                            <p>Ledger is clear. Add an expense from the sidebar!</p>
+                        </div>
+                    {% else %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover small">
+                                <thead><tr><th>Group</th><th>Date</th><th>Description</th><th>Amount</th><th>Actions</th></tr></thead>
+                                <tbody>
+                                {% for exp in expenses %}
+                                <tr>
+                                    <td><strong>{{ exp.group_name }}</strong></td>
+                                    <td>{{ exp.expense_date }}</td>
+                                    <td>{{ exp.description }}</td>
+                                    <td class="text-danger fw-bold">${{ exp.amount }}</td>
+                                    <td>
+                                        <form action="{{ url_for('expenses.delete', expense_id=exp.expense_id) }}" method="POST">
+                                            <input type="hidden" name="group_id" value="{{ selected_group_id }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this expense?');"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="shadow-sm bg-white mb-4" style="border-radius: 12px; border: 1px solid #eaeaea;">
+                <div class="ledger-section-header p-3 d-flex justify-content-between align-items-center" onclick="toggleSection(this)" style="cursor: pointer;">
+                    <h4 class="m-0 fw-bold" style="color: #4a4a4a;"><i class="bi bi-calendar-event me-2 text-warning"></i>Subscriptions</h4>
+                    <span class="fs-5 text-muted caret-icon" style="transition: transform 0.2s ease;"><i class="bi bi-caret-down-fill"></i></span>
+                </div>
+                
+                <div class="p-3 border-top" style="display: none;">
+                    {% if not subscriptions %}
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-arrow-repeat fs-1 d-block mb-3"></i>
+                            <p>No active subscriptions. Add one from the sidebar!</p>
+                        </div>
+                    {% else %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover small">
+                                <thead><tr><th>Group</th><th>Name</th><th>Monthly Amount</th><th>Billing Day</th><th>Actions</th></tr></thead>
+                                <tbody>
+                                {% for sub in subscriptions %}
+                                <tr>
+                                    <td><strong>{{ sub.group_name }}</strong></td>
+                                    <td>{{ sub.expense_name }}</td>
+                                    <td class="text-danger fw-bold">${{ sub.amount }}</td>
+                                    <td>{{ sub.billing_day }}</td>
+                                    <td>
+                                        <form action="{{ url_for('subscriptions.delete', subscription_id=sub.subscription_id) }}" method="POST">
+                                            <input type="hidden" name="group_id" value="{{ selected_group_id }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove subscription?');"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+        </div> </div> </div> <div class="modal fade" id="uploadPDFModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: 12px; border: none;">
+            <div class="modal-header border-bottom-0 pt-4 pb-0">
+                <h5 class="modal-title fw-bold" style="color: #333;">Upload Utility Bills</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pb-4">
+                <p class="text-muted small mb-4">Select one or multiple utility bills (PDF format). AI will parse the details and stage them for review.</p>
+                <form action="{{ url_for('utilities.upload') }}" method="POST" enctype="multipart/form-data">
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-semibold text-secondary">Split With</label>
+                        <select name="group_id" class="form-select" style="border-radius: 8px;" required>
+                            <option value="" disabled {% if selected_group_id == 0 %}selected{% endif %}>Select a group or individual...</option>
+                            {% for group in groups %}
+                                <option value="{{ group.group_id }}" {% if selected_group_id == group.group_id %}selected{% endif %}>{{ group.group_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-4">
+                        <label class="form-label fw-semibold text-secondary">Bills (PDF)</label>
+                        <input class="form-control" type="file" name="bills" multiple accept=".pdf" required style="border-radius: 8px;">
+                    </div>
+                    <button type="submit" class="btn btn-pink w-100 py-2" style="border-radius: 8px; font-weight: 600;">Upload and Parse with AI</button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
+<div class="modal fade" id="uploadReceiptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: 12px; border: none;">
+            <div class="modal-header border-bottom-0 pt-4 pb-0">
+                <h5 class="modal-title fw-bold" style="color: #333;">Scan Receipt</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pb-4">
+                <p class="text-muted small mb-4">Upload an image of a retail receipt (JPEG/PNG/HEIC). AI Vision will extract the individual items and stage them as one-off expenses.</p>
+                <form action="{{ url_for('expenses.upload_receipt') }}" method="POST" enctype="multipart/form-data">
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-semibold text-secondary">Split With</label>
+                        <select name="group_id" class="form-select" style="border-radius: 8px;" required>
+                            <option value="" disabled {% if selected_group_id == 0 %}selected{% endif %}>Select a group or individual...</option>
+                            {% for group in groups %}
+                                <option value="{{ group.group_id }}" {% if selected_group_id == group.group_id %}selected{% endif %}>{{ group.group_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-4">
+                        <label class="form-label fw-semibold text-secondary">Receipt Image</label>
+                        <input class="form-control" type="file" name="receipt_image" accept="image/*" required style="border-radius: 8px;">
+                    </div>
+                    <button type="submit" class="btn btn-pink w-100 py-2" style="border-radius: 8px; font-weight: 600;">Scan with AI Vision</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="manualEntryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: 12px; border: none;">
+            <div class="modal-header border-bottom-0 pt-4 pb-0">
+                <h5 class="modal-title fw-bold" style="color: #333;">Manual Entry</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pb-4">
+                <p class="text-muted small mb-4">Manually enter a one-off expense. It will be immediately added to the ledger.</p>
+                <form action="{{ url_for('expenses.manual_add') }}" method="POST">
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-semibold text-secondary">Split With</label>
+                        <select name="group_id" class="form-select" style="border-radius: 8px;" required>
+                            <option value="" disabled {% if selected_group_id == 0 %}selected{% endif %}>Select a group or individual...</option>
+                            {% for group in groups %}
+                                <option value="{{ group.group_id }}" {% if selected_group_id == group.group_id %}selected{% endif %}>{{ group.group_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-semibold text-secondary">Item Name</label>
+                        <input type="text" class="form-control" name="item_name" required style="border-radius: 8px;">
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-semibold text-secondary">Amount ($)</label>
+                        <input type="number" step="0.01" class="form-control" name="amount" required style="border-radius: 8px;">
+                    </div>
+                    
+                    <div class="form-group mb-4">
+                        <label class="form-label fw-semibold text-secondary">Date</label>
+                        <input type="date" class="form-control" name="date" required style="border-radius: 8px;">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-pink w-100 py-2" style="border-radius: 8px; font-weight: 600;">Add Expense</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addSubscriptionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: 12px; border: none;">
+            <div class="modal-header border-bottom-0 pt-4 pb-0">
+                <h5 class="modal-title fw-bold" style="color: #333;">Add Subscription</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pb-4">
+                <p class="text-muted small mb-4">Set up a recurring monthly charge (like Netflix or Spotify). This will automatically hit the dashboard on the billing day.</p>
+                <form action="{{ url_for('subscriptions.add') }}" method="POST">
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-semibold text-secondary">Split With</label>
+                        <select name="group_id" class="form-select" style="border-radius: 8px;" required>
+                            <option value="" disabled {% if selected_group_id == 0 %}selected{% endif %}>Select a group or individual...</option>
+                            {% for group in groups %}
+                                <option value="{{ group.group_id }}" {% if selected_group_id == group.group_id %}selected{% endif %}>{{ group.group_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-semibold text-secondary">Subscription Name</label>
+                        <input type="text" class="form-control" name="expense_name" required style="border-radius: 8px;">
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-semibold text-secondary">Monthly Amount ($)</label>
+                        <input type="number" step="0.01" class="form-control" name="amount" required style="border-radius: 8px;">
+                    </div>
+                    
+                    <div class="form-group mb-4">
+                        <label class="form-label fw-semibold text-secondary">Billing Day (1-31)</label>
+                        <input type="number" min="1" max="31" class="form-control" name="billing_day" required style="border-radius: 8px;">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-pink w-100 py-2" style="border-radius: 8px; font-weight: 600;">Add Subscription</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Handles automatic form submission when dropdown changes
+    document.getElementById('group_id_select').addEventListener('change', function() {
+        document.getElementById('groupFilterForm').submit();
+    });
+</script>
+
 <script src="{{ url_for('static', filename='js/activity.js') }}"></script>
+
 {% endblock %}

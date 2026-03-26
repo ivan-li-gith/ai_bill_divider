@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     
     // --- UTILITY: Generate a Member Row HTML String ---
-    function createMemberRow(isExisting = false, id = '', name = '', email = '', phone = '', role = 'member') {
+    function createMemberRow(isExisting = false, id = '', name = '', email = '', role = 'member') {
         const prefix = isExisting ? 'existing' : 'new';
         const disabledAttr = role === 'owner' ? 'readonly' : '';
         const idInput = isExisting ? `<input type="hidden" name="existing_ids[]" value="${id}">` : '';
@@ -14,14 +14,11 @@ document.addEventListener('DOMContentLoaded', function() {
         return `
             <div class="row align-items-center mb-2 member-row">
                 ${idInput}
-                <div class="col-md-3 mb-2 mb-md-0">
+                <div class="col-md-5 mb-2 mb-md-0">
                     <input type="text" class="form-control form-control-sm" name="${prefix}_names[]" placeholder="Name" value="${name}" required ${disabledAttr}>
                 </div>
-                <div class="col-md-4 mb-2 mb-md-0">
+                <div class="col-md-5 mb-2 mb-md-0">
                     <input type="email" class="form-control form-control-sm" name="${prefix}_emails[]" placeholder="Email (Optional)" value="${email}" ${disabledAttr}>
-                </div>
-                <div class="col-md-3 mb-2 mb-md-0">
-                    <input type="text" class="form-control form-control-sm" name="${prefix}_phones[]" placeholder="Phone (Optional)" value="${phone}" ${disabledAttr}>
                 </div>
                 <div class="col-md-2">
                     ${removeBtn}
@@ -112,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (groupType === 'individual' && member.role === 'owner') return;
                 
                 existingContainer.insertAdjacentHTML('beforeend', createMemberRow(
-                    true, member.id, member.name, member.email, member.phone, member.role
+                    true, member.id, member.name, member.email, member.role
                 ));
             });
 

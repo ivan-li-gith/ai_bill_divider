@@ -11,7 +11,6 @@ def generate_pdf_breakdown(name, total, util, exp, sub):
     page = doc.new_page()
     
     text = (
-        f"Split Em - Expense Breakdown\n\n"
         f"Hello {name},\n"
         f"Here is your current outstanding balance breakdown:\n\n"
         f"Utilities: ${util:.2f}\n"
@@ -33,7 +32,7 @@ def send_email_with_pdf(to_email, name, pdf_bytes):
     msg['From'] = sender_email
     msg['To'] = to_email
 
-    body = MIMEText(f"Hi {name},\n\nPlease find attached your expense breakdown PDF.\n\nCheers,\nSplit Em")
+    body = MIMEText(f"Hi {name},\n\nPlease find attached your expense breakdown PDF.\n\nBest,\nSplit Em")
     msg.attach(body)
 
     part = MIMEApplication(pdf_bytes, Name="Balance_Breakdown.pdf")

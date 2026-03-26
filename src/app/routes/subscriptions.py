@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash, jsonify
 from src.app.database import (
     get_user_groups, 
-    get_subscription, 
+    get_subscriptions, 
     add_subscription, 
     delete_subscription,
     update_subscription
@@ -38,7 +38,7 @@ def edit(subscription_id):
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({"status": "success"})
     flash("Subscription updated.", "success")
-    return redirect(url_for('subscriptions.index', group_id=group_id))
+    return redirect(url_for('activity.index', group_id=group_id))
 
 @subscriptions.route('/subscriptions/delete/<int:subscription_id>', methods=['POST'])
 def delete(subscription_id):
@@ -49,4 +49,4 @@ def delete(subscription_id):
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({"status": "success"})
     
-    return redirect(url_for('subscriptions.index', group_id=group_id))
+    return redirect(url_for('activity.index', group_id=group_id))

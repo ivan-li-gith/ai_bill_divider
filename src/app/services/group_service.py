@@ -18,7 +18,7 @@ def fetch_user_groups(user_id):
             group['members'] = members_data or []
     return user_groups
 
-def add_new_group(user_id, group_name, group_type, names, emails, phones):
+def add_new_group(user_id, group_name, group_type, names, emails):
     """Handles the creation of a new group or individual card."""
     if group_type == 'individual' and names:
         group_name = names[0]
@@ -27,24 +27,24 @@ def add_new_group(user_id, group_name, group_type, names, emails, phones):
         raise ValueError("Group name is required.")
         
     group_id = create_group(user_id, group_name, group_type)
-    _process_members(user_id, group_id, names, emails, phones, auto_create_individual=(group_type == 'group'))
+    _process_members(user_id, group_id, names, emails, auto_create_individual=(group_type == 'group'))
     return group_name
 
 def modify_group(user_id, group_id, group_type, new_name, existing_data, new_data):
     """Handles the complex logic of updating both full groups and individual cards."""
     # SCENARIO A: Editing an Individual Card
     if group_type == 'individual':
-        names, emails, phones = new_data['names'], new_data['emails'], new_data['phones']
+        # FIX: Changed new_data to existing_data
+        names, emails = existing_data['names'], existing_data['emails']
         if names:
             clean_name = names[0].strip()
             clean_email = emails[0].strip() if emails else ""
-            clean_phone = phones[0].strip() if phones else ""
             
             if clean_name:
                 members = get_group_members(group_id)
                 target = next((m for m in members if m['role'] != 'owner'), None)
                 if target:
-                    update_and_sync_member(target['group_member_id'], user_id, clean_name, clean_email, clean_phone)
+                    update_and_sync_member(target['group_member_id'], user_id, clean_name, clean_email)
                     
     # SCENARIO B: Editing a Full Group
     else:
@@ -52,23 +52,22 @@ def modify_group(user_id, group_id, group_type, new_name, existing_data, new_dat
             update_group_name(group_id, new_name)
             
             # 1. Update existing members
-            for m_id, name, email, phone in zip(existing_data['ids'], existing_data['names'], existing_data['emails'], existing_data['phones']):
+            for m_id, name, email in zip(existing_data['ids'], existing_data['names'], existing_data['emails']):
                 clean_name = name.strip()
                 if clean_name:
-                    update_and_sync_member(m_id, user_id, clean_name, email.strip(), phone.strip())
+                    update_and_sync_member(m_id, user_id, clean_name, email.strip())
                     
             # 2. Add any brand new members
-            _process_members(user_id, group_id, new_data['names'], new_data['emails'], new_data['phones'], auto_create_individual=True)
+            _process_members(user_id, group_id, new_data['names'], new_data['emails'], auto_create_individual=True)
 
-def _process_members(user_id, group_id, names, emails, phones, auto_create_individual=False):
+def _process_members(user_id, group_id, names, emails, auto_create_individual=False):
     """Private helper to iterate through form lists and save members."""
-    for name, email, phone in zip(names, emails, phones): 
+    for name, email in zip(names, emails): 
         clean_name = name.strip()
         clean_email = email.strip() if email else ""
-        clean_phone = phone.strip() if phone else "" 
         
         if clean_name:
-            add_group_member(group_id, clean_name, clean_email, clean_phone) 
+            add_group_member(group_id, clean_name, clean_email) 
             if auto_create_individual:
                 _ensure_individual_exists(user_id, clean_name, clean_email)
 

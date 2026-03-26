@@ -13,10 +13,10 @@ def index():
     if request.method == 'POST':
         name = request.form.get('display_name')
         email = request.form.get('email', '')
-        phone = request.form.get('phone', '')
+        # phone removal
         
         try:
-            save_profile(user_id, name, email, phone)
+            save_profile(user_id, name, email)
             session['user_name'] = name
             flash('Profile updated successfully!', 'success')
         except Exception as e:

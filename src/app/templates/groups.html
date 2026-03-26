@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container mt-4">
     
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-5">
         <h2>Groups & Individuals</h2>
         <div>
             <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#addGroupModal" data-type="individual">
@@ -15,36 +15,38 @@
         </div>
     </div>
 
-    <div class="row">
-        {% if groups %}
-            {% for group in groups %}
+    <div class="d-flex align-items-center mb-3 border-bottom pb-2">
+        <h4 class="mb-0 text-secondary" style="font-weight: 600;"><i class="bi bi-people-fill me-2"></i>Groups</h4>
+    </div>
+    <div class="row mb-5">
+        {% set ns_groups = namespace(found=false) %}
+        {% for group in groups if group.group_type == 'group' %}
+            {% set ns_groups.found = true %}
             <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0 text-truncate">
+                <div class="card shadow-sm h-100" style="border-radius: 12px; border: 1px solid #eaeaea;">
+                    <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
+                        <h5 class="card-title mb-0 fw-bold text-truncate text-primary">
                             {{ group.group_name }} 
-                            {% if group.group_type == 'individual' %}
-                                <span class="badge bg-secondary ms-2" style="font-size: 0.6em;">Individual</span>
-                            {% endif %}
                         </h5>
                     </div>
                     
                     <div class="card-body">
-                        <ul class="list-group list-group-flush mb-3">
+                        <ul class="list-unstyled mb-0">
                             {% for member in group.members %}
-                                <li class="list-group-item px-0 py-1 border-0 text-truncate">
-                                    <i class="bi bi-person-fill text-muted me-2"></i> 
+                                <li class="py-1 text-truncate" style="color: #555;">
+                                    <i class="bi bi-person-circle text-muted me-2"></i> 
                                     {{ member.name }}
                                     {% if member.role == 'owner' %}
-                                        <span class="badge bg-primary rounded-pill ms-1" style="font-size: 0.6em;">You</span>
+                                        <span class="badge bg-light text-primary border border-primary rounded-pill ms-1" style="font-size: 0.65em;">You</span>
                                     {% endif %}
                                 </li>
                             {% endfor %}
                         </ul>
                     </div>
                     
-                    <div class="card-footer bg-white border-top-0 d-flex justify-content-between">
-                        <button class="btn btn-sm btn-outline-secondary" 
+                    <div class="card-footer bg-white border-top d-flex justify-content-between py-3 rounded-bottom" style="border-radius: 0 0 12px 12px;">
+                        <button class="btn btn-sm btn-outline-secondary px-3" 
+                                style="border-radius: 6px;"
                                 data-bs-toggle="modal" 
                                 data-bs-target="#editGroupModal"
                                 data-group-id="{{ group.group_id }}"
@@ -55,18 +57,67 @@
                         </button>
 
                         {% if group.owner_id == session['user_id'] %}
-                        <form action="{{ url_for('groups.delete', group_id=group.group_id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this?');">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                        <form action="{{ url_for('groups.delete', group_id=group.group_id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this group?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger px-3" style="border-radius: 6px;">Delete</button>
                         </form>
                         {% endif %}
                     </div>
                 </div>
             </div>
-            {% endfor %}
-        {% else %}
-            <div class="col-12 text-center text-muted mt-5">
-                <p class="fs-4">You haven't added anyone yet.</p>
-                <p>Add roommates, friends, or create groups to start splitting bills!</p>
+        {% endfor %}
+        {% if not ns_groups.found %}
+            <div class="col-12 text-muted text-center py-4 bg-white rounded shadow-sm border" style="border-style: dashed !important;">
+                <p class="mb-0">No groups created yet. Create a group to start splitting bills with a house!</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="d-flex align-items-center mb-3 border-bottom pb-2">
+        <h4 class="mb-0 text-secondary" style="font-weight: 600;"><i class="bi bi-person-fill me-2"></i>Individuals</h4>
+    </div>
+    <div class="row">
+        {% set ns_indiv = namespace(found=false) %}
+        {% for group in groups if group.group_type == 'individual' %}
+            {% set ns_indiv.found = true %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card shadow-sm h-100" style="border-radius: 12px; border: 1px solid #eaeaea;">
+                    <div class="card-body d-flex flex-column justify-content-center align-items-center text-center py-4">
+                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                            <i class="bi bi-person-fill text-secondary" style="font-size: 2rem;"></i>
+                        </div>
+                        <h5 class="card-title fw-bold mb-1">{{ group.group_name }}</h5>
+                        
+                        {% for member in group.members %}
+                            {% if member.role != 'owner' and member.email %}
+                                <p class="text-muted small mb-0"><i class="bi bi-envelope me-1"></i> {{ member.email }}</p>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="card-footer bg-white border-top d-flex justify-content-between py-3" style="border-radius: 0 0 12px 12px;">
+                        <button class="btn btn-sm btn-outline-secondary px-3" 
+                                style="border-radius: 6px;"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#editGroupModal"
+                                data-group-id="{{ group.group_id }}"
+                                data-group-name="{{ group.group_name }}"
+                                data-group-type="{{ group.group_type }}"
+                                data-members="{{ group.members | tojson | forceescape }}">
+                            Edit
+                        </button>
+
+                        {% if group.owner_id == session['user_id'] %}
+                        <form action="{{ url_for('groups.delete', group_id=group.group_id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this individual?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger px-3" style="border-radius: 6px;">Delete</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+        {% if not ns_indiv.found %}
+            <div class="col-12 text-muted text-center py-4 bg-white rounded shadow-sm border" style="border-style: dashed !important;">
+                <p class="mb-0">No individuals added yet. Add an individual for one-on-one cost splitting!</p>
             </div>
         {% endif %}
     </div>

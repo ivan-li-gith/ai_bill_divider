@@ -7,7 +7,7 @@ groups = Blueprint('groups', __name__)
 @groups.route('/groups')
 def index():
     if "user_id" not in session:
-        return redirect(url_for("auth.login"))
+        return redirect(url_for("auth.login_page"))
     
     user_groups = fetch_user_groups(session["user_id"])
     return render_template('groups.html', groups=user_groups)
@@ -15,7 +15,7 @@ def index():
 @groups.route('/groups/create', methods=['POST'])
 def create():
     if "user_id" not in session:
-        return redirect(url_for("auth.login"))
+        return redirect(url_for("auth.login_page"))
     
     try:
         group_name = add_new_group(
@@ -23,8 +23,7 @@ def create():
             group_name=request.form.get('group_name'),
             group_type=request.form.get('group_type', 'group'),
             names=request.form.getlist('new_names[]'),
-            emails=request.form.getlist('new_emails[]'),
-            phones=request.form.getlist('new_phones[]')
+            emails=request.form.getlist('new_emails[]')
         )
         flash(f"Group '{group_name}' created successfully!", "success")
     except Exception as e:
@@ -35,19 +34,17 @@ def create():
 @groups.route('/groups/edit/<int:group_id>', methods=['POST'])
 def edit(group_id):
     if "user_id" not in session: 
-        return redirect(url_for("auth.login"))
+        return redirect(url_for("auth.login_page"))
     
     existing_data = {
         'ids': request.form.getlist('existing_ids[]'),
         'names': request.form.getlist('existing_names[]'),
-        'emails': request.form.getlist('existing_emails[]'),
-        'phones': request.form.getlist('existing_phones[]')
+        'emails': request.form.getlist('existing_emails[]')
     }
     
     new_data = {
         'names': request.form.getlist('new_names[]'),
-        'emails': request.form.getlist('new_emails[]'),
-        'phones': request.form.getlist('new_phones[]')
+        'emails': request.form.getlist('new_emails[]')
     }
     
     try:

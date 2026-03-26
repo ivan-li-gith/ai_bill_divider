@@ -18,10 +18,9 @@ def save():
     user_id = session.get("user_id")
     display_name = request.form.get("display_name")
     email = request.form.get("email", "")
-    phone = request.form.get("phone", "")
     
     try:
-        save_profile(user_id, display_name, email, phone)
+        save_profile(user_id, display_name, email)
         session["user_name"] = display_name
         flash(f"Profile created! Welcome to Split Em, {display_name}.", "success")
         return redirect(url_for('dashboard.index'))

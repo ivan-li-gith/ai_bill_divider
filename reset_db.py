@@ -1,23 +1,22 @@
 # reset_db.py
-from src.app.database import get_engine
+from src.app.database import engine
 from sqlalchemy import text
 
-engine = get_engine()
 with engine.begin() as conn:
     print("WARNING: Deleting ALL application data...")
     
     # 1. Disable foreign key checks to allow "force" delete
     conn.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
     
+    # Updated table names based on the refactored models.py
     tables = [
-        "payment_tracker", 
-        "bill_history", 
-        "group_members", 
-        "group_list", 
-        "roommates", 
         "profiles",
-        "subscription_expenses",
-        "receipt_expenses",
+        "groups",
+        "group_members",
+        "utility_bills",
+        "utility_splits",
+        "subscriptions",
+        "expenses",
         "expense_splits"
     ]
     

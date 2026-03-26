@@ -1,14 +1,14 @@
 import time
 import fitz
-import os
 import base64
 import json
+import openai
 from openai import OpenAI
 from pydantic import BaseModel, Field
 from config import Config
 
 openai.api_key = Config.OPENAI_API_KEY
-client = OpenAI(api_key=api_key)
+client = OpenAI(api_key=Config.OPENAI_API_KEY)
 
 # model for the ai output
 class UtilityBill(BaseModel):

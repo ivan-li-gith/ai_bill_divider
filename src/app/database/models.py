@@ -11,7 +11,6 @@ class Profile(Base):
     user_id: Mapped[str] = mapped_column(String(255), primary_key=True)
     display_name: Mapped[Optional[str]] = mapped_column(String(255))
     email: Mapped[Optional[str]] = mapped_column(String(255))
-    phone: Mapped[Optional[str]] = mapped_column(String(50))
 
 class Group(Base):
     __tablename__ = "groups"
@@ -28,7 +27,6 @@ class GroupMember(Base):
     group_id: Mapped[Optional[int]] = mapped_column(ForeignKey("groups.group_id", ondelete="CASCADE"))
     member_name: Mapped[Optional[str]] = mapped_column(String(255))
     member_email: Mapped[Optional[str]] = mapped_column(String(255))
-    member_phone: Mapped[Optional[str]] = mapped_column(String(50))
     user_id: Mapped[Optional[str]] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(50), default="member")
     group: Mapped["Group"] = relationship(back_populates="members")
@@ -64,6 +62,7 @@ class Subscription(Base):
     amount: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
     billing_day: Mapped[Optional[int]] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    group: Mapped["Group"] = relationship()
 
 class Expense(Base):
     __tablename__ = "expenses"
@@ -77,6 +76,7 @@ class Expense(Base):
     split_method: Mapped[Optional[str]] = mapped_column(String(50))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     splits: Mapped[List["ExpenseSplit"]] = relationship(back_populates="expense", cascade="all, delete-orphan")
+    group: Mapped["Group"] = relationship()
 
 class ExpenseSplit(Base):
     __tablename__ = "expense_splits"

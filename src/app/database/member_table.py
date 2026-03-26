@@ -1,8 +1,8 @@
 from src.app.database.db import db_session
 from src.app.database.models import GroupMember, Group
 
-def add_group_member(group_id, name, email, phone=""):
-    new_member = GroupMember(group_id=group_id, member_name=name, member_email=email, member_phone=phone)
+def add_group_member(group_id, name, email):
+    new_member = GroupMember(group_id=group_id, member_name=name, member_email=email)
     db_session.add(new_member)
     db_session.commit()
         
@@ -12,19 +12,18 @@ def delete_member(member_id):
         db_session.delete(member)
         db_session.commit()
         
-def update_member(member_id, name, email, phone=""):
+def update_member(member_id, name, email):
     member = db_session.query(GroupMember).filter_by(group_member_id=member_id).filter(GroupMember.role != 'owner').first()
     if member:
         member.member_name = name
         member.member_email = email
-        member.member_phone = phone
         db_session.commit()
         
 def get_group_members(group_id):
     members = db_session.query(GroupMember).filter_by(group_id=group_id).all()
     return [{
         "group_member_id": m.group_member_id, "member_name": m.member_name, 
-        "member_email": m.member_email, "member_phone": m.member_phone, 
+        "member_email": m.member_email, 
         "user_id": m.user_id, "role": m.role
     } for m in members]
 
@@ -32,7 +31,7 @@ def get_group_member_names(group_id):
     members = db_session.query(GroupMember.member_name).filter_by(group_id=group_id).all()
     return [m.member_name for m in members]
     
-def update_and_sync_member(member_id, owner_id, new_name, new_email, new_phone=""):
+def update_and_sync_member(member_id, owner_id, new_name, new_email):
     target_member = db_session.query(GroupMember).filter_by(group_member_id=member_id).first()
     if not target_member:
         return
@@ -48,7 +47,6 @@ def update_and_sync_member(member_id, owner_id, new_name, new_email, new_phone="
     for m in members_to_update:
         m.member_name = new_name
         m.member_email = new_email
-        m.member_phone = new_phone
         
     individual_group = db_session.query(Group).filter_by(owner_id=owner_id, group_name=old_name, group_type='individual').first()
     if individual_group:

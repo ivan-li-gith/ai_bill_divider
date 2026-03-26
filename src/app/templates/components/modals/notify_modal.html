@@ -1,84 +1,30 @@
-{% extends "navbar_base.html" %}
-
-{% block content %}
-<div class="container mt-4">
-    
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Dashboard</h2>
-        
-        <form action="{{ url_for('dashboard.index') }}" method="GET" class="d-flex">
-            <select name="group_id" class="form-select me-2" onchange="this.form.submit()">
-                <option value="0" {% if selected_group_id == 0 %}selected{% endif %}>All Groups</option>
-                {% for group in groups %}
-                    <option value="{{ group.group_id }}" {% if selected_group_id == group.group_id %}selected{% endif %}>
-                        {{ group.group_name }}
-                    </option>
-                {% endfor %}
-            </select>
-        </form>
-    </div>
-
-    <div class="card shadow-sm mb-4">
-        <div class="card-body text-center">
-            <h5 class="text-muted mb-1">Total Uncollected</h5>
-            <h1 class="display-4 text-success">${{ "%.2f"|format(total_uncollected) }}</h1>
+<div class="modal fade" id="notifyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Send Notification</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <form action="{{ url_for('dashboard.send_notification') }}" method="POST">
+                <div class="modal-body">
+                    <p>Send a balance breakdown to <strong id="notify-display-name"></strong> for <strong class="text-danger" id="notify-display-total"></strong>?</p>
+                    
+                    <input type="hidden" name="name" id="notify-name">
+                    <input type="hidden" name="email" id="notify-email">
+                    <input type="hidden" name="total" id="notify-total">
+                    <input type="hidden" name="utilities" id="notify-utilities">
+                    <input type="hidden" name="expenses" id="notify-expenses">
+                    <input type="hidden" name="subscriptions" id="notify-subscriptions">
+                    <input type="hidden" name="method" value="email">
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Send Email</button>
+                </div>
+            </form>
+            
         </div>
     </div>
-
-    <div class="row">
-        {% if debtors %}
-            {% for debtor in debtors %}
-            <div class="col-md-6 col-lg-4 mb-3">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ debtor.name }}</h5>
-                        <hr>
-                        
-                        <div class="d-flex justify-content-between">
-                            <span>Utilities:</span>
-                            <span>${{ "%.2f"|format(debtor.utilities) }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span>Expenses:</span>
-                            <span>${{ "%.2f"|format(debtor.expenses) }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span>Subscriptions:</span>
-                            <span>${{ "%.2f"|format(debtor.subscriptions) }}</span>
-                        </div>
-                        <hr>
-                        
-                        <div class="d-flex justify-content-between fw-bold fs-5 mb-3">
-                            <span>Total Owed:</span>
-                            <span class="text-danger">${{ "%.2f"|format(debtor.total) }}</span>
-                        </div>
-                        
-                        <button type="button" 
-                                class="btn btn-primary w-100" 
-                                data-bs-toggle="modal" 
-                                data-bs-target="#notifyModal"
-                                data-name="{{ debtor.name }}"
-                                data-email="{{ debtor.email }}"
-                                data-total="{{ debtor.total }}"
-                                data-utilities="{{ debtor.utilities }}"
-                                data-expenses="{{ debtor.expenses }}"
-                                data-subscriptions="{{ debtor.subscriptions }}">
-                            Send Notification
-                        </button>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div class="col-12 text-center text-muted mt-5">
-                <p class="fs-4">Everyone is all caught up! 🎉</p>
-            </div>
-        {% endif %}
-    </div>
 </div>
-
-{% include 'components/modals/notify_modal.html' %}
-
-<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-
-{% endblock %}

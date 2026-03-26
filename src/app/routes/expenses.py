@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash, jsonify
 from src.app.core.parser import extract_from_receipt_image
 from src.app.database import get_user_groups
-from src.app.database import load_expense_history, save_new_expense, delete_expense
+from src.app.database import get_expenses, add_expense, delete_expense
 from datetime import datetime
 
 expenses = Blueprint('expenses', __name__)
@@ -29,7 +29,7 @@ def upload_receipt():
 @expenses.route('/expenses/manual_add', methods=['POST'])
 def manual_add():
     """Handles manual entry and instantly saves it to DB."""
-    if "user_id" not in session: return redirect(url_for('auth.login'))
+    if "user_id" not in session: return redirect(url_for('auth.login_page'))
     
     user_id = session["user_id"]
     group_id = request.form.get("group_id")
@@ -46,7 +46,7 @@ def manual_add():
     if item_name and amount > 0:
         try:
             # INSTANT SAVE (Instead of staging)
-            save_new_expense(group_id, user_id, date, item_name, amount, payer_id, split_method)
+            add_expense(group_id, user_id, date, item_name, amount, payer_id, split_method)
             flash(f"'{item_name}' added to ledger.", "success")
         except Exception as e:
             flash(f"Error saving expense: {e}", "danger")
@@ -58,7 +58,7 @@ def manual_add():
 def delete(expense_id):
     """Deletes an expense and returns the user to the ledger."""
     if "user_id" not in session:
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('auth.login_page'))
         
     try:
         delete_expense(expense_id)
@@ -66,7 +66,7 @@ def delete(expense_id):
     except Exception as e:
         flash(f"Error deleting expense: {e}", "danger")
         
-    return redirect(url_for('expenses.index'))
+    return redirect(url_for('activity.index'))
 
 @expenses.route('/expenses/save_staged', methods=['POST'])
 def save_staged():
@@ -90,7 +90,7 @@ def save_staged():
         
         # Save each item as a separate expense, assuming an even split for now
         if item_name and amount > 0:
-            save_new_expense(group_id, user_id, date, item_name, amount, user_id, "even")
+            add_expense(group_id, user_id, date, item_name, amount, user_id, "even")
             saved_count += 1
 
     # Clear the temporary data from the session

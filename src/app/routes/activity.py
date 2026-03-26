@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for
-from src.app.database import get_user_groups, load_history, get_subscription, load_expense_history, get_group_members
+from src.app.database import get_user_groups, get_utility_bills, get_subscriptions, get_expenses, get_group_members
 from src.app.services.utility_service import calculate_utilities, get_member_names
 
 activity = Blueprint('activity', __name__)
@@ -23,16 +23,16 @@ def index():
 
     if group_id == 0:
         # Fetch all subscriptions
-        subs = get_subscription(user_id, 0)
+        subs = get_subscriptions(user_id, 0)
         
         # Iterate through every group to fetch and combine expenses & utilities
         for g in user_groups:
             gid = g['group_id']
             
-            g_exps = load_expense_history(gid)
+            g_exps = get_expenses(gid)
             exps.extend(g_exps)
             
-            b_history = load_history(user_id, gid)
+            b_history = get_utility_bills(user_id, gid)
             if not b_history.empty:
                 members = get_group_members(gid)
                 names = get_member_names(user_id, members)
@@ -49,10 +49,10 @@ def index():
         
     else:
         # Fetch data for only the specifically selected group
-        exps = load_expense_history(group_id)
-        subs = get_subscription(user_id, group_id)
+        exps = get_expenses(group_id)
+        subs = get_subscriptions(user_id, group_id)
 
-        billing_history = load_history(user_id, group_id)
+        billing_history = get_utility_bills(user_id, group_id)
         if not billing_history.empty:
             members = get_group_members(group_id)
             names = get_member_names(user_id, members)

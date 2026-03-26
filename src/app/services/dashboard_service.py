@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from src.app.database import get_user_groups, get_utility_bills, get_group_members, get_unpaid_expense_splits, get_subscriptions
-from src.app.routes.utilities import calculate_utilities, get_member_names
+from src.app.services.utility_service import calculate_utilities, get_member_names
 
 def get_dashboard_metrics(user_id, group_id):
     """Calculates all outstanding debts for the dashboard."""
@@ -9,7 +9,7 @@ def get_dashboard_metrics(user_id, group_id):
     debtors_dict = {}
     contact_map = {}
     
-    # 1. Map contacts for emails/phones
+    # 1. Map contacts for emails
     for group in user_groups:
         members = group.get('members_json', [])
         if isinstance(members, str): 
@@ -17,8 +17,7 @@ def get_dashboard_metrics(user_id, group_id):
         for member in (members or []):
             if member.get('name') not in contact_map:
                 contact_map[member.get('name')] = {
-                    'email': member.get('email', ''), 
-                    'phone': member.get('phone', '')
+                    'email': member.get('email', '')
                 }
 
     def add_debt(name, category, amount):
@@ -27,7 +26,7 @@ def get_dashboard_metrics(user_id, group_id):
             contact = contact_map.get(name, {})
             debtors_dict[name] = {
                 'name': name, 'utilities': 0.0, 'expenses': 0.0, 'subscriptions': 0.0, 'total': 0.0,
-                'email': contact.get('email', ''), 'phone': contact.get('phone', '')
+                'email': contact.get('email', '')
             }
         debtors_dict[name][category] += amount
         debtors_dict[name]['total'] += amount

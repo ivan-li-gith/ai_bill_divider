@@ -32,7 +32,6 @@ def get_user_groups(user_id):
             'id': m.group_member_id,
             'name': m.member_name,
             'email': m.member_email,
-            'phone': m.member_phone,
             'role': m.role
         } for m in g.members]
         
